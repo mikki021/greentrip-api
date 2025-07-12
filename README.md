@@ -1,61 +1,96 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GreenTrip API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A **mock API for a sustainable business travel agency**. This project simulates the backend for a modern, eco-conscious travel platform, providing endpoints for user authentication, registration, email verification, and more. It is designed for rapid prototyping, integration testing, and as a reference for best practices in Laravel API development.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **User Registration & Login** (JWT-based authentication)
+- **Email Verification** with expiring links (48h validity)
+- **Block login for unverified emails**
+- **Swagger/OpenAPI 3.0 documentation** at `/api/swagger`
+- **Comprehensive PHPUnit/Laravel tests**
+- **Pre-commit & pre-push Git hooks** for code quality (see [`GIT_HOOKS.md`](GIT_HOOKS.md))
+- **Dockerized** for easy local development
+- **Mailhog** integration for email testing
+- **PSR-12 code style** and static analysis ready
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Quick Start (Docker)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. **Clone the repository:**
+   ```bash
+   git clone <repo-url>
+   cd greentrip-api
+   ```
+2. **Copy environment file:**
+   ```bash
+   cp .env.example .env
+   ```
+3. **Start the stack:**
+   ```bash
+   docker-compose up -d
+   ```
+4. **Install dependencies:**
+   ```bash
+   docker exec greentrip_app composer install
+   ```
+5. **Run migrations:**
+   ```bash
+   docker exec greentrip_app php artisan migrate
+   ```
+6. **Access Mailhog UI:**
+   - [http://localhost:8025](http://localhost:8025)
+7. **View Swagger UI:**
+   - [http://localhost:8000/api/swagger](http://localhost:8000/api/swagger)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## API Documentation
 
-## Laravel Sponsors
+- **Swagger/OpenAPI 3.0**: [swagger.yaml](swagger.yaml)
+- **Interactive UI**: [http://localhost:8000/api/swagger](http://localhost:8000/api/swagger)
+- **Spec endpoint**: [http://localhost:8000/api/swagger/spec](http://localhost:8000/api/swagger/spec)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Testing & Code Quality
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- **Run all tests:**
+  ```bash
+  ./scripts/test.sh
+  ```
+- **Run only unit/feature tests:**
+  ```bash
+  ./scripts/test.sh --unit
+  ./scripts/test.sh --feature
+  ```
+- **Run with coverage:**
+  ```bash
+  ./scripts/test.sh --coverage
+  # (Requires Xdebug or PCOV in Docker image)
+  ```
+- **Code style & static analysis:**
+  ```bash
+  ./scripts/test.sh --style
+  ./scripts/test.sh --static
+  ```
+- **Git hooks:**
+  - Pre-commit and pre-push hooks run tests and code checks automatically. See [`GIT_HOOKS.md`](GIT_HOOKS.md).
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Development Workflow
 
-## Code of Conduct
+- All code is checked for style and tested before commit/push (see hooks)
+- Use Mailhog to view outgoing emails (email verification, etc.)
+- API is stateless and uses JWT for authentication
+- Email verification is required for login
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT. See [LICENSE](LICENSE) for details.
