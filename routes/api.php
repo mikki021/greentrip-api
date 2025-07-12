@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SwaggerController;
+use App\Http\Controllers\EmailVerificationController;
 
 Route::get('/', function () {
     return response()->json([
@@ -22,6 +23,10 @@ Route::group(['prefix' => 'auth'], function () {
         Route::get('me', [AuthController::class, 'me']);
     });
 });
+
+// Email Verification Routes
+Route::get('verify-email/{token}', [EmailVerificationController::class, 'verify']);
+Route::post('resend-verification', [EmailVerificationController::class, 'resend']);
 
 Route::group(['prefix' => 'users', 'middleware' => 'auth:api'], function () {
     Route::get('profile', [UserController::class, 'profile']);

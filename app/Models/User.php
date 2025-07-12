@@ -22,6 +22,9 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'email_verified_at',
+        'email_verification_token',
+        'email_verification_expires_at',
     ];
 
     /**
@@ -35,17 +38,15 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'email_verification_expires_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
@@ -61,5 +62,21 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    /**
+     * Check if user's email is verified.
+     */
+    public function isEmailVerified(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Check if email verification token is expired.
+     */
+    public function isEmailVerificationExpired(): bool
+    {
+        return $this->email_verification_expires_at && $this->email_verification_expires_at->isPast();
     }
 }

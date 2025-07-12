@@ -34,9 +34,7 @@ class AuthServiceTest extends TestCase
         $result = $this->authService->register($userData);
 
         $this->assertArrayHasKey('user', $result);
-        $this->assertArrayHasKey('token', $result);
         $this->assertInstanceOf(User::class, $result['user']);
-        $this->assertIsString($result['token']);
 
         $this->assertDatabaseHas('users', [
             'name' => 'John Doe',

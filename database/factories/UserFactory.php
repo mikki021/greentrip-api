@@ -39,6 +39,8 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+            'email_verification_token' => null,
+            'email_verification_expires_at' => null,
         ]);
     }
 }

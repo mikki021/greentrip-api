@@ -32,6 +32,8 @@ servers:
 tags:
   - name: Authentication
     description: User authentication and authorization endpoints
+  - name: Email Verification
+    description: Email verification and account activation endpoints
   - name: Users
     description: User profile and management endpoints
 
@@ -118,11 +120,9 @@ paths:
                     example: "success"
                   message:
                     type: string
-                    example: "User created successfully"
+                    example: "Registration successful. Please check your email to verify your account."
                   user:
                     $ref: '#/components/schemas/User'
-                  authorization:
-                    $ref: '#/components/schemas/Authorization'
         '422':
           description: Validation error
           content:
@@ -135,7 +135,7 @@ paths:
       tags:
         - Authentication
       summary: Login user
-      description: Authenticate user with email and password to receive a JWT token
+      description: Authenticate user with email and password to receive a JWT token. Email must be verified before login.
       requestBody:
         required: true
         content:
@@ -266,6 +266,87 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnauthorizedError'
+
+  /verify-email/{token}:
+    get:
+      tags:
+        - Email Verification
+      summary: Verify email address
+      description: Verify user's email address using the token sent via email
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Email verification token
+          schema:
+            type: string
+            example: "abc123def456ghi789"
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email verified successfully. You can now log in."
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid or expired verification token."
+
+  /resend-verification:
+    post:
+      tags:
+        - Email Verification
+      summary: Resend verification email
+      description: Resend email verification link to user's email address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User's email address
+                  example: "john.doe@example.com"
+            examples:
+              resend_verification:
+                summary: Resend verification email
+                value:
+                  email: "john.doe@example.com"
+      responses:
+        '200':
+          description: Verification email sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification email sent successfully."
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
   /users/profile:
     get:
@@ -500,6 +581,12 @@ components:
           format: email
           description: User's email address
           example: "john.doe@example.com"
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Email verification timestamp
+          example: "2024-01-15T10:30:00.000000Z"
         created_at:
           type: string
           format: date-time

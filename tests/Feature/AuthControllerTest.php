@@ -34,20 +34,13 @@ class AuthControllerTest extends TestCase
                     'created_at',
                     'updated_at',
                 ],
-                'authorization' => [
-                    'token',
-                    'type',
-                ],
             ])
             ->assertJson([
                 'status' => 'success',
-                'message' => 'User created successfully',
+                'message' => 'Registration successful. Please check your email to verify your account.',
                 'user' => [
                     'name' => 'John Doe',
                     'email' => 'john@example.com',
-                ],
-                'authorization' => [
-                    'type' => 'bearer',
                 ],
             ]);
 
@@ -114,6 +107,7 @@ class AuthControllerTest extends TestCase
         $user = User::factory()->create([
             'email' => 'john@example.com',
             'password' => Hash::make('password123'),
+            'email_verified_at' => now(),
         ]);
 
         $loginData = [
@@ -168,6 +162,7 @@ class AuthControllerTest extends TestCase
         User::factory()->create([
             'email' => 'john@example.com',
             'password' => Hash::make('password123'),
+            'email_verified_at' => now(),
         ]);
 
         $invalidCredentials = [
@@ -296,6 +291,34 @@ class AuthControllerTest extends TestCase
             ->assertJson([
                 'message' => 'GreenTrip API',
                 'version' => '1.0.0',
+            ]);
+    }
+
+    /** @test */
+    public function it_prevents_login_for_unverified_email()
+    {
+        $user = User::factory()->create([
+            'email' => 'john@example.com',
+            'password' => Hash::make('password123'),
+            'email_verified_at' => null,
+        ]);
+
+        $loginData = [
+            'email' => 'john@example.com',
+            'password' => 'password123',
+        ];
+
+        $response = $this->postJson('/api/auth/login', $loginData);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Validation failed',
+            ])
+            ->assertJsonStructure([
+                'errors' => [
+                    'email',
+                ],
             ]);
     }
 }
