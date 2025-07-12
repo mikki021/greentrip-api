@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SwaggerController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\FlightController;
 
 Route::get('/', function () {
     return response()->json([
@@ -33,6 +34,14 @@ Route::group(['prefix' => 'users', 'middleware' => 'auth:api'], function () {
     Route::get('{id}', [UserController::class, 'show']);
     Route::put('{id}', [UserController::class, 'update']);
     Route::delete('{id}', [UserController::class, 'destroy']);
+});
+
+// Flight Routes
+Route::group(['prefix' => 'flights', 'middleware' => 'auth:api'], function () {
+    Route::post('search', [FlightController::class, 'search']);
+    Route::post('book', [FlightController::class, 'book']);
+    Route::get('airports', [FlightController::class, 'airports']);
+    Route::get('{flightId}', [FlightController::class, 'show']);
 });
 
 // Swagger Documentation Routes

@@ -36,6 +36,8 @@ tags:
     description: Email verification and account activation endpoints
   - name: Users
     description: User profile and management endpoints
+  - name: Flights
+    description: Flight booking and search endpoints
 
 paths:
   /:
@@ -556,6 +558,241 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotFoundError'
 
+  /flights/search:
+    post:
+      tags:
+        - Flights
+      summary: Search for available flights
+      description: Search for flights based on origin, destination, date, and number of passengers.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from
+                - to
+                - date
+              properties:
+                from:
+                  type: string
+                  description: Origin airport code (IATA)
+                  example: JFK
+                to:
+                  type: string
+                  description: Destination airport code (IATA)
+                  example: LAX
+                date:
+                  type: string
+                  format: date
+                  description: Departure date (YYYY-MM-DD)
+                  example: 2024-12-25
+                passengers:
+                  type: integer
+                  description: Number of passengers
+                  example: 2
+            examples:
+              valid_search:
+                summary: Valid search
+                value:
+                  from: JFK
+                  to: LAX
+                  date: 2024-12-25
+                  passengers: 2
+      responses:
+        '200':
+          description: Flights found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      flights:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Flight'
+                      search_criteria:
+                        type: object
+                        properties:
+                          from:
+                            type: string
+                          to:
+                            type: string
+                          date:
+                            type: string
+                          passengers:
+                            type: integer
+                      total_count:
+                        type: integer
+                        example: 1
+                      search_timestamp:
+                        type: string
+                        format: date-time
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /flights/book:
+    post:
+      tags:
+        - Flights
+      summary: Book a flight
+      description: Book a flight for one or more passengers.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - flight_id
+                - passengers
+                - passenger_details
+                - contact_email
+              properties:
+                flight_id:
+                  type: string
+                  description: Flight ID
+                  example: FL001
+                passengers:
+                  type: integer
+                  description: Number of passengers
+                  example: 2
+                passenger_details:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Passenger'
+                contact_email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                contact_phone:
+                  type: string
+                  example: '+1234567890'
+            examples:
+              valid_booking:
+                summary: Valid booking
+                value:
+                  flight_id: FL001
+                  passengers: 2
+                  passenger_details:
+                    - first_name: John
+                      last_name: Doe
+                      date_of_birth: 1990-01-01
+                      passport_number: AB123456
+                    - first_name: Jane
+                      last_name: Doe
+                      date_of_birth: 1992-05-15
+                      passport_number: CD789012
+                  contact_email: john.doe@example.com
+                  contact_phone: '+1234567890'
+      responses:
+        '201':
+          description: Flight booked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Flight booked successfully
+                  data:
+                    $ref: '#/components/schemas/Booking'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /flights/{flightId}:
+    get:
+      tags:
+        - Flights
+      summary: Get flight details
+      description: Retrieve details for a specific flight by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flightId
+          in: path
+          required: true
+          description: Flight ID
+          schema:
+            type: string
+            example: FL001
+      responses:
+        '200':
+          description: Flight details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Flight'
+        '404':
+          description: Flight not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Flight not found
+
+  /flights/airports:
+    get:
+      tags:
+        - Flights
+      summary: List available airports
+      description: Retrieve a list of available airports.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Airports retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Airport'
+                  count:
+                    type: integer
+                    example: 6
+
 components:
   securitySchemes:
     bearerAuth:
@@ -674,6 +911,161 @@ components:
           example: "User not found."
       required:
         - message
+
+    Flight:
+      type: object
+      properties:
+        id:
+          type: string
+          example: FL001
+        airline:
+          type: string
+          example: Green Airlines
+        flight_number:
+          type: string
+          example: GA101
+        from:
+          type: string
+          example: JFK
+        to:
+          type: string
+          example: LAX
+        departure_time:
+          type: string
+          example: '10:00'
+        arrival_time:
+          type: string
+          example: '13:30'
+        duration:
+          type: string
+          example: '5h 30m'
+        price:
+          type: number
+          format: float
+          example: 299.99
+        seats_available:
+          type: integer
+          example: 45
+        aircraft:
+          type: string
+          example: Boeing 737
+        carbon_footprint:
+          type: number
+          format: float
+          example: 0.85
+        eco_rating:
+          type: number
+          format: float
+          example: 4.2
+      required:
+        - id
+        - airline
+        - flight_number
+        - from
+        - to
+        - departure_time
+        - arrival_time
+        - duration
+        - price
+        - seats_available
+        - aircraft
+        - carbon_footprint
+        - eco_rating
+
+    Airport:
+      type: object
+      properties:
+        code:
+          type: string
+          example: JFK
+        name:
+          type: string
+          example: John F. Kennedy International Airport
+        city:
+          type: string
+          example: New York
+        country:
+          type: string
+          example: USA
+      required:
+        - code
+        - name
+        - city
+        - country
+
+    Passenger:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: John
+        last_name:
+          type: string
+          example: Doe
+        date_of_birth:
+          type: string
+          format: date
+          example: 1990-01-01
+        passport_number:
+          type: string
+          example: AB123456
+      required:
+        - first_name
+        - last_name
+        - date_of_birth
+        - passport_number
+
+    Booking:
+      type: object
+      properties:
+        booking_reference:
+          type: string
+          example: GTABC1234
+        flight_id:
+          type: string
+          example: FL001
+        flight_details:
+          $ref: '#/components/schemas/Flight'
+        passengers:
+          type: integer
+          example: 2
+        total_price:
+          type: number
+          format: float
+          example: 599.98
+        passenger_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/Passenger'
+        contact_email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        contact_phone:
+          type: string
+          example: '+1234567890'
+        booking_date:
+          type: string
+          format: date-time
+          example: '2024-12-01T10:00:00Z'
+        status:
+          type: string
+          example: confirmed
+        carbon_offset_contribution:
+          type: number
+          format: float
+          example: 0.13
+      required:
+        - booking_reference
+        - flight_id
+        - flight_details
+        - passengers
+        - total_price
+        - passenger_details
+        - contact_email
+        - booking_date
+        - status
+        - carbon_offset_contribution
 
   examples:
     UserExample:

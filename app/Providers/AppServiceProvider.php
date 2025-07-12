@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\FlightProviderInterface;
 use App\Services\AuthService;
+use App\Services\FakeFlightProvider;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -15,6 +17,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AuthService::class, function ($app) {
             return new AuthService();
         });
+
+        $this->app->bind(FlightProviderInterface::class, FakeFlightProvider::class);
     }
 
     /**
