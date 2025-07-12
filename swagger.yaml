@@ -1,0 +1,619 @@
+openapi: 3.0.3
+info:
+  title: GreenTrip API
+  description: |
+    A comprehensive API for GreenTrip application with JWT authentication and user management.
+
+    ## Authentication
+    This API uses JWT (JSON Web Token) for authentication. To access protected endpoints:
+    1. Register a new user or login to get a JWT token
+    2. Include the token in the Authorization header: `Authorization: Bearer <token>`
+    3. The token will expire after 60 minutes and can be refreshed
+
+    ## Rate Limiting
+    API requests are rate limited to ensure fair usage.
+
+    ## Error Responses
+    All error responses follow a consistent format with status code, message, and optional details.
+  version: 1.0.0
+  contact:
+    name: GreenTrip API Support
+    email: support@greentrip.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api
+    description: Development server
+  - url: https://api.greentrip.com/api
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization endpoints
+  - name: Users
+    description: User profile and management endpoints
+
+paths:
+  /:
+    get:
+      tags:
+        - General
+      summary: API Information
+      description: Get basic information about the API
+      responses:
+        '200':
+          description: API information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "GreenTrip API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account and receive a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: User's full name
+                  example: "John Doe"
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  description: User's email address (must be unique)
+                  example: "john.doe@example.com"
+                password:
+                  type: string
+                  minLength: 8
+                  description: User's password (minimum 8 characters)
+                  example: "password123"
+                password_confirmation:
+                  type: string
+                  minLength: 8
+                  description: Password confirmation (must match password)
+                  example: "password123"
+            examples:
+              valid_registration:
+                summary: Valid registration data
+                value:
+                  name: "John Doe"
+                  email: "john.doe@example.com"
+                  password: "password123"
+                  password_confirmation: "password123"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "User created successfully"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  authorization:
+                    $ref: '#/components/schemas/Authorization'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user with email and password to receive a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User's email address
+                  example: "john.doe@example.com"
+                password:
+                  type: string
+                  minLength: 8
+                  description: User's password
+                  example: "password123"
+            examples:
+              valid_login:
+                summary: Valid login credentials
+                value:
+                  email: "john.doe@example.com"
+                  password: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  authorization:
+                    $ref: '#/components/schemas/Authorization'
+        '422':
+          description: Validation error or invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Retrieve information about the currently authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidate the current JWT token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Successfully logged out"
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh token
+      description: Get a new JWT token using the current valid token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  authorization:
+                    $ref: '#/components/schemas/Authorization'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieve the current user's profile information
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: Retrieve information about a specific user (only accessible by the user themselves)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden - User can only access their own data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+
+    put:
+      tags:
+        - Users
+      summary: Update user
+      description: Update user information (only accessible by the user themselves)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: User's full name
+                  example: "John Doe Updated"
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  description: User's email address (must be unique)
+                  example: "john.updated@example.com"
+            examples:
+              update_name:
+                summary: Update user name
+                value:
+                  name: "John Doe Updated"
+              update_email:
+                summary: Update user email
+                value:
+                  email: "john.updated@example.com"
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "User updated successfully"
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden - User can only update their own data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+    delete:
+      tags:
+        - Users
+      summary: Delete user
+      description: Delete a user account (only accessible by the user themselves)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        '401':
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden - User can only delete their own account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or register endpoint
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique user identifier
+          example: 1
+        name:
+          type: string
+          description: User's full name
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "john.doe@example.com"
+        created_at:
+          type: string
+          format: date-time
+          description: User creation timestamp
+          example: "2024-01-15T10:30:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: User last update timestamp
+          example: "2024-01-15T10:30:00.000000Z"
+      required:
+        - id
+        - name
+        - email
+        - created_at
+        - updated_at
+
+    Authorization:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token for authentication
+          example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        type:
+          type: string
+          description: Token type
+          example: "bearer"
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+      required:
+        - token
+        - type
+        - expires_in
+
+    ValidationError:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: object
+          description: Field-specific validation errors
+          example:
+            email:
+              - "The email field is required."
+            password:
+              - "The password must be at least 8 characters."
+            password_confirmation:
+              - "The password confirmation does not match."
+      required:
+        - status
+        - message
+        - errors
+
+    UnauthorizedError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Unauthenticated."
+      required:
+        - message
+
+    ForbiddenError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "This action is unauthorized."
+      required:
+        - message
+
+    NotFoundError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "User not found."
+      required:
+        - message
+
+  examples:
+    UserExample:
+      summary: Example user object
+      value:
+        id: 1
+        name: "John Doe"
+        email: "john.doe@example.com"
+        created_at: "2024-01-15T10:30:00.000000Z"
+        updated_at: "2024-01-15T10:30:00.000000Z"
+
+    AuthorizationExample:
+      summary: Example authorization object
+      value:
+        token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3MDUzMjQwMDAsImV4cCI6MTcwNTMyNzYwMCwibmJmIjoxNzA1MzI0MDAwLCJqdGkiOiJhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiIsInN1YiI6MSwidXNlciI6eyJpZCI6MSwibmFtZSI6IkpvaG4gRG9lIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImNyZWF0ZWRfYXQiOiIyMDI0LTAxLTE1VDEwOjMwOjAwLjAwMDAwMFoiLCJ1cGRhdGVkX2F0IjoiMjAyNC0wMS0xNVQxMDozMDowMC4wMDAwMDBaIn19.signature"
+        type: "bearer"
+        expires_in: 3600
+
+    ValidationErrorExample:
+      summary: Example validation error
+      value:
+        status: "error"
+        message: "Validation failed"
+        errors:
+          email:
+            - "The email field is required."
+          password:
+            - "The password must be at least 8 characters."
+          password_confirmation:
+            - "The password confirmation does not match."
