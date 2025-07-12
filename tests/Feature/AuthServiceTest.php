@@ -4,15 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\AuthService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class AuthServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     protected AuthService $authService;
 
     protected function setUp(): void
@@ -26,7 +23,7 @@ class AuthServiceTest extends TestCase
     {
         $userData = [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authservice.1@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ];
@@ -38,7 +35,7 @@ class AuthServiceTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authservice.1@example.com',
         ]);
 
         $this->assertTrue(Hash::check('password123', $result['user']->password));
@@ -62,14 +59,13 @@ class AuthServiceTest extends TestCase
     /** @test */
     public function it_throws_validation_exception_for_duplicate_email()
     {
-        // Create a user first
-        User::factory()->create(['email' => 'john@example.com']);
+        User::factory()->create(['email' => 'authservice.2@example.com']);
 
         $this->expectException(ValidationException::class);
 
         $duplicateData = [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authservice.2@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ];
@@ -84,7 +80,7 @@ class AuthServiceTest extends TestCase
 
         $invalidData = [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authservice.3@example.com',
             'password' => 'password123',
         ];
 
@@ -95,12 +91,12 @@ class AuthServiceTest extends TestCase
     public function it_can_login_with_valid_credentials()
     {
         $user = User::factory()->create([
-            'email' => 'john@example.com',
+            'email' => 'authservice.4@example.com',
             'password' => Hash::make('password123'),
         ]);
 
         $loginData = [
-            'email' => 'john@example.com',
+            'email' => 'authservice.4@example.com',
             'password' => 'password123',
         ];
 
@@ -130,14 +126,14 @@ class AuthServiceTest extends TestCase
     public function it_throws_validation_exception_for_invalid_credentials()
     {
         User::factory()->create([
-            'email' => 'john@example.com',
+            'email' => 'authservice.5@example.com',
             'password' => Hash::make('password123'),
         ]);
 
         $this->expectException(ValidationException::class);
 
         $invalidCredentials = [
-            'email' => 'john@example.com',
+            'email' => 'authservice.5@example.com',
             'password' => 'wrongpassword',
         ];
 
@@ -198,6 +194,7 @@ class AuthServiceTest extends TestCase
         auth()->login($user);
 
         $originalToken = auth()->getToken();
+
         $result = $this->authService->refreshToken();
 
         $this->assertArrayHasKey('user', $result);
@@ -212,11 +209,12 @@ class AuthServiceTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        $missingData = [
-            'name' => 'John Doe',
+        $invalidData = [
+            'email' => 'test@example.com',
+            'password' => 'password123',
         ];
 
-        $this->authService->register($missingData);
+        $this->authService->register($invalidData);
     }
 
     /** @test */
@@ -224,14 +222,14 @@ class AuthServiceTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        $invalidEmailData = [
+        $invalidData = [
             'name' => 'John Doe',
             'email' => 'invalid-email-format',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ];
 
-        $this->authService->register($invalidEmailData);
+        $this->authService->register($invalidData);
     }
 
     /** @test */
@@ -239,14 +237,14 @@ class AuthServiceTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        $shortPasswordData = [
+        $invalidData = [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'test@example.com',
             'password' => 'short',
             'password_confirmation' => 'short',
         ];
 
-        $this->authService->register($shortPasswordData);
+        $this->authService->register($invalidData);
     }
 
     /** @test */
@@ -254,11 +252,11 @@ class AuthServiceTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        $missingData = [
-            'email' => 'john@example.com',
+        $invalidData = [
+            'email' => 'test@example.com',
         ];
 
-        $this->authService->login($missingData);
+        $this->authService->login($invalidData);
     }
 
     /** @test */
@@ -266,11 +264,11 @@ class AuthServiceTest extends TestCase
     {
         $this->expectException(ValidationException::class);
 
-        $invalidEmailData = [
+        $invalidData = [
             'email' => 'invalid-email-format',
             'password' => 'password123',
         ];
 
-        $this->authService->login($invalidEmailData);
+        $this->authService->login($invalidData);
     }
 }

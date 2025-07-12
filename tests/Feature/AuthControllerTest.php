@@ -3,20 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthControllerTest extends TestCase
 {
-    use RefreshDatabase;
-
     /** @test */
     public function it_can_register_user_via_api()
     {
         $userData = [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.1@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ];
@@ -40,13 +37,13 @@ class AuthControllerTest extends TestCase
                 'message' => 'Registration successful. Please check your email to verify your account.',
                 'user' => [
                     'name' => 'John Doe',
-                    'email' => 'john@example.com',
+                    'email' => 'authcontroller.1@example.com',
                 ],
             ]);
 
         $this->assertDatabaseHas('users', [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.1@example.com',
         ]);
     }
 
@@ -81,11 +78,11 @@ class AuthControllerTest extends TestCase
     /** @test */
     public function it_returns_error_for_duplicate_email_registration()
     {
-        User::factory()->create(['email' => 'john@example.com']);
+        User::factory()->create(['email' => 'authcontroller.2@example.com']);
 
         $duplicateData = [
             'name' => 'John Doe',
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.2@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ];
@@ -105,13 +102,13 @@ class AuthControllerTest extends TestCase
     public function it_can_login_user_via_api()
     {
         $user = User::factory()->create([
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.3@example.com',
             'password' => Hash::make('password123'),
             'email_verified_at' => now(),
         ]);
 
         $loginData = [
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.3@example.com',
             'password' => 'password123',
         ];
 
@@ -160,13 +157,13 @@ class AuthControllerTest extends TestCase
     public function it_returns_unauthorized_for_invalid_credentials()
     {
         User::factory()->create([
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.4@example.com',
             'password' => Hash::make('password123'),
             'email_verified_at' => now(),
         ]);
 
         $invalidCredentials = [
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.4@example.com',
             'password' => 'wrongpassword',
         ];
 
@@ -215,7 +212,10 @@ class AuthControllerTest extends TestCase
     {
         $response = $this->getJson('/api/auth/me');
 
-        $response->assertStatus(401);
+        $response->assertStatus(401)
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
     /** @test */
@@ -240,17 +240,20 @@ class AuthControllerTest extends TestCase
     {
         $response = $this->postJson('/api/auth/logout');
 
-        $response->assertStatus(401);
+        $response->assertStatus(401)
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
     /** @test */
     public function it_can_refresh_token_via_api()
     {
         $user = User::factory()->create();
-        $originalToken = auth()->login($user);
+        $token = auth()->login($user);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $originalToken,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson('/api/auth/refresh');
 
         $response->assertStatus(200)
@@ -269,9 +272,8 @@ class AuthControllerTest extends TestCase
                 ],
             ]);
 
-        $newToken = $response->json('authorization.token');
-        $this->assertNotEquals($originalToken, $newToken);
-        $this->assertIsString($newToken);
+        $this->assertIsString($response->json('authorization.token'));
+        $this->assertNotEquals($token, $response->json('authorization.token'));
     }
 
     /** @test */
@@ -279,7 +281,10 @@ class AuthControllerTest extends TestCase
     {
         $response = $this->postJson('/api/auth/refresh');
 
-        $response->assertStatus(401);
+        $response->assertStatus(401)
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
     /** @test */
@@ -288,6 +293,10 @@ class AuthControllerTest extends TestCase
         $response = $this->getJson('/api');
 
         $response->assertStatus(200)
+            ->assertJsonStructure([
+                'message',
+                'version',
+            ])
             ->assertJson([
                 'message' => 'GreenTrip API',
                 'version' => '1.0.0',
@@ -297,14 +306,13 @@ class AuthControllerTest extends TestCase
     /** @test */
     public function it_prevents_login_for_unverified_email()
     {
-        $user = User::factory()->create([
-            'email' => 'john@example.com',
+        $user = User::factory()->unverified()->create([
+            'email' => 'authcontroller.5@example.com',
             'password' => Hash::make('password123'),
-            'email_verified_at' => null,
         ]);
 
         $loginData = [
-            'email' => 'john@example.com',
+            'email' => 'authcontroller.5@example.com',
             'password' => 'password123',
         ];
 
@@ -314,11 +322,8 @@ class AuthControllerTest extends TestCase
             ->assertJson([
                 'status' => 'error',
                 'message' => 'Validation failed',
-            ])
-            ->assertJsonStructure([
-                'errors' => [
-                    'email',
-                ],
             ]);
+
+        $this->assertArrayHasKey('email', $response->json('errors'));
     }
 }

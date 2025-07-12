@@ -5,14 +5,11 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Services\EmailService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class EmailVerificationControllerTest extends TestCase
 {
-    use RefreshDatabase;
-
     /** @test */
     public function it_can_verify_email_with_valid_token()
     {
@@ -78,11 +75,11 @@ class EmailVerificationControllerTest extends TestCase
     public function it_can_resend_verification_email()
     {
         $user = User::factory()->unverified()->create([
-            'email' => 'john@example.com',
+            'email' => 'emailverify.1@example.com',
         ]);
 
         $response = $this->postJson('/api/resend-verification', [
-            'email' => 'john@example.com',
+            'email' => 'emailverify.1@example.com',
         ]);
 
         $response->assertStatus(200)
@@ -115,12 +112,12 @@ class EmailVerificationControllerTest extends TestCase
     public function it_returns_error_for_resend_to_already_verified_email()
     {
         $user = User::factory()->create([
-            'email' => 'john@example.com',
+            'email' => 'emailverify.2@example.com',
             'email_verified_at' => now(),
         ]);
 
         $response = $this->postJson('/api/resend-verification', [
-            'email' => 'john@example.com',
+            'email' => 'emailverify.2@example.com',
         ]);
 
         $response->assertStatus(422)

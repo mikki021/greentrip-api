@@ -1,6 +1,11 @@
 #!/bin/bash
 
 # Test runner script for GreenTrip API
+#
+# Database Configuration:
+# - Main database: greentrip (connection: mysql)
+# - Test database: greentrip_testing (connection: mysql_testing)
+#
 # Usage: ./scripts/test.sh [options]
 # Options:
 #   --unit      Run only unit tests
@@ -64,10 +69,13 @@ wait_for_db() {
     done
 }
 
-# Run migrations
-run_migrations() {
-    print_status "🔄 Running database migrations..."
-    docker exec greentrip_app php artisan migrate --force
+# Clean up test database
+cleanup_test_database() {
+    print_status "🧹 Cleaning up test database..."
+    # mysql_testing connection points to greentrip_testing database
+    # Use explicit environment variables to ensure we target the test database
+    docker exec greentrip_app bash -c "DB_CONNECTION=mysql_testing php artisan db:wipe --force" 2>/dev/null || true
+    print_success "✅ Test database cleaned up!"
 }
 
 # Run unit tests
@@ -82,10 +90,10 @@ run_feature_tests() {
     docker exec greentrip_app php artisan test --testsuite=Feature
 }
 
-# Run all tests
+# Run all tests using composer (automatically handles migrations)
 run_all_tests() {
     print_status "🧪 Running all tests..."
-    docker exec greentrip_app php artisan test
+    docker exec greentrip_app composer test
 }
 
 # Run tests with coverage
@@ -95,7 +103,7 @@ run_tests_with_coverage() {
         print_success "✅ Tests with coverage completed!"
     else
         print_warning "⚠️  Coverage driver not available. Running tests without coverage..."
-        docker exec greentrip_app php artisan test
+        docker exec greentrip_app composer test
         print_status "💡 To enable coverage, install Xdebug or PCOV in the Docker container"
     fi
 }
@@ -130,17 +138,19 @@ main() {
     check_docker
     check_container
     wait_for_db
-    run_migrations
 
     case "${1:---all}" in
         --unit)
             run_unit_tests
+            cleanup_test_database
             ;;
         --feature)
             run_feature_tests
+            cleanup_test_database
             ;;
         --coverage)
             run_tests_with_coverage
+            cleanup_test_database
             ;;
         --style)
             run_style_checks
@@ -150,6 +160,7 @@ main() {
             ;;
         --all)
             run_all_tests
+            cleanup_test_database
             echo ""
             run_style_checks
             echo ""

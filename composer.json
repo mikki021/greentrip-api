@@ -57,6 +57,7 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
+            "@php artisan migrate --database=mysql_testing --force --ansi",
             "@php artisan test"
         ]
     },

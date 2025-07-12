@@ -11,7 +11,7 @@ A **mock API for a sustainable business travel agency**. This project simulates 
 - **Block login for unverified emails**
 - **Swagger/OpenAPI 3.0 documentation** at `/api/swagger`
 - **Comprehensive PHPUnit/Laravel tests**
-- **Pre-commit & pre-push Git hooks** for code quality (see [`GIT_HOOKS.md`](GIT_HOOKS.md))
+- **Pre-commit Git hook** for code quality and testing
 - **Dockerized** for easy local development
 - **Mailhog** integration for email testing
 - **PSR-12 code style** and static analysis ready
@@ -78,13 +78,13 @@ A **mock API for a sustainable business travel agency**. This project simulates 
   ./scripts/test.sh --static
   ```
 - **Git hooks:**
-  - Pre-commit and pre-push hooks run tests and code checks automatically. See [`GIT_HOOKS.md`](GIT_HOOKS.md).
+  - Pre-commit hook runs tests and code quality checks automatically before each commit.
 
 ---
 
 ## Development Workflow
 
-- All code is checked for style and tested before commit/push (see hooks)
+- All code is tested before commit, with additional quality checks as warnings
 - Use Mailhog to view outgoing emails (email verification, etc.)
 - API is stateless and uses JWT for authentication
 - Email verification is required for login
