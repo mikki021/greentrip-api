@@ -1,9 +1,37 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\SwaggerController;
 
 Route::get('/', function () {
     return response()->json([
-        'message' => 'Hello API',
+        'message' => 'GreenTrip API',
+        'version' => '1.0.0',
     ]);
+});
+
+Route::group(['prefix' => 'auth'], function () {
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login']);
+
+    Route::group(['middleware' => 'auth:api'], function () {
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('refresh', [AuthController::class, 'refresh']);
+        Route::get('me', [AuthController::class, 'me']);
+    });
+});
+
+Route::group(['prefix' => 'users', 'middleware' => 'auth:api'], function () {
+    Route::get('profile', [UserController::class, 'profile']);
+    Route::get('{id}', [UserController::class, 'show']);
+    Route::put('{id}', [UserController::class, 'update']);
+    Route::delete('{id}', [UserController::class, 'destroy']);
+});
+
+// Swagger Documentation Routes
+Route::group(['prefix' => 'swagger'], function () {
+    Route::get('/', [SwaggerController::class, 'index']);
+    Route::get('spec', [SwaggerController::class, 'spec']);
 });
