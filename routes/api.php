@@ -8,6 +8,7 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FlightController;
 use App\Http\Controllers\EmissionController;
 use App\Http\Controllers\EmissionsReportingController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
@@ -16,6 +17,9 @@ Route::get('/', function () {
         'version' => '1.0.0',
     ]);
 });
+
+// Health check endpoint (no authentication required)
+Route::get('health', [HealthController::class, 'index']);
 
 // Auth routes with strict rate limiting
 Route::group(['prefix' => 'auth', 'middleware' => 'throttle:auth'], function () {
