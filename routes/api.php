@@ -7,6 +7,8 @@ use App\Http\Controllers\SwaggerController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FlightController;
 use App\Http\Controllers\EmissionController;
+use App\Http\Controllers\EmissionsReportingController;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return response()->json([
@@ -55,6 +57,8 @@ Route::group(['prefix' => 'bookings', 'middleware' => 'auth:api'], function () {
 // Emission Routes
 Route::group(['prefix' => 'emissions', 'middleware' => 'auth:api'], function () {
     Route::post('calculate', [EmissionController::class, 'calculate']);
+    Route::get('summary', [EmissionsReportingController::class, 'getEmissionsSummary']);
+    Route::delete('cache', [EmissionsReportingController::class, 'clearCache']);
 });
 
 // Swagger Documentation Routes
