@@ -13,6 +13,7 @@
 #   --coverage  Run tests with coverage report
 #   --style     Run code style checks
 #   --static    Run static analysis
+#   --parallel  Run all tests in parallel mode
 #   --all       Run all checks (default)
 
 set -e
@@ -96,6 +97,12 @@ run_all_tests() {
     docker exec greentrip_app composer test
 }
 
+# Run tests in parallel mode
+run_parallel_tests() {
+    print_status "🧪 Running all tests in parallel mode..."
+    docker exec greentrip_app composer test:parallel
+}
+
 # Run tests with coverage
 run_tests_with_coverage() {
     print_status "🧪 Running tests with coverage..."
@@ -139,7 +146,7 @@ main() {
     check_container
     wait_for_db
 
-    case "${1:---all}" in
+    case "${1:---parallel}" in
         --unit)
             run_unit_tests
             cleanup_test_database
@@ -158,8 +165,12 @@ main() {
         --static)
             run_static_analysis
             ;;
+        --parallel)
+            run_parallel_tests
+            cleanup_test_database
+            ;;
         --all)
-            run_all_tests
+            run_parallel_tests
             cleanup_test_database
             echo ""
             run_style_checks
@@ -168,7 +179,7 @@ main() {
             ;;
         *)
             print_error "❌ Unknown option: $1"
-            echo "Usage: $0 [--unit|--feature|--coverage|--style|--static|--all]"
+            echo "Usage: $0 [--unit|--feature|--coverage|--style|--static|--parallel|--all]"
             exit 1
             ;;
     esac

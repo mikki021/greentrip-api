@@ -59,6 +59,19 @@
             "@php artisan config:clear --ansi",
             "@php artisan migrate --database=mysql_testing --force --ansi",
             "@php artisan test"
+        ],
+        "test:parallel": [
+            "@php artisan config:clear --ansi",
+            "@php artisan migrate --database=mysql_testing --force --ansi",
+            "@php artisan test"
+        ],
+        "test:unit": [
+            "./vendor/bin/phpunit --testsuite=Unit"
+        ],
+        "test:feature": [
+            "@php artisan config:clear --ansi",
+            "@php artisan migrate --database=mysql_testing --force --ansi",
+            "./vendor/bin/phpunit --testsuite=Feature"
         ]
     },
     "extra": {
