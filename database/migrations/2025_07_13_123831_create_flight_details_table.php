@@ -32,6 +32,14 @@ return new class extends Migration
             $table->decimal('total_price', 12, 2)->nullable();
             $table->timestamps();
             $table->unique(['flight_id', 'date']);
+
+            // Performance indexes for flight search and filtering
+            $table->index(['from', 'to', 'date'], 'flight_details_route_date_index');
+            $table->index(['airline', 'date'], 'flight_details_airline_date_index');
+            $table->index('date', 'flight_details_date_index');
+            $table->index('price', 'flight_details_price_index');
+            $table->index('seats_available', 'flight_details_seats_index');
+            $table->index('eco_rating', 'flight_details_eco_rating_index');
         });
     }
 

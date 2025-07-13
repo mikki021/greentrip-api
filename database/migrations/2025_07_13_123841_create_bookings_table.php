@@ -23,6 +23,12 @@ return new class extends Migration
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('flight_details_id')->references('id')->on('flight_details')->onDelete('cascade');
+
+            // Performance indexes for common query patterns
+            $table->index(['user_id', 'created_at'], 'bookings_user_created_at_index');
+            $table->index(['user_id', 'status'], 'bookings_user_status_index');
+            $table->index('created_at', 'bookings_created_at_index');
+            $table->index('emissions', 'bookings_emissions_index');
         });
     }
 

@@ -37,7 +37,9 @@ class EmissionsReportingService
      */
     private function calculateEmissionsSummary(User $user, string $period): array
     {
-        $query = Booking::withTrashed()->where('user_id', $user->id)
+        // Use optimized query with proper indexing
+        $query = Booking::withTrashed()
+            ->forEmissionsReport($user->id) // Uses bookings_emissions_reporting_index
             ->with(['flightDetail' => function ($query) {
                 $query->select('id', 'from', 'to', 'airline', 'date');
             }])
