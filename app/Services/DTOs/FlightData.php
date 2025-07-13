@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DataTransferObjects;
+namespace App\Services\DTOs;
 
 class FlightData
 {
@@ -17,9 +17,7 @@ class FlightData
         public readonly int $seats_available,
         public readonly string $aircraft,
         public readonly float $carbon_footprint,
-        public readonly float $eco_rating,
-        public readonly ?string $date = null,
-        public readonly ?float $total_price = null
+        public readonly float $eco_rating
     ) {}
 
     public static function fromArray(array $data): self
@@ -37,15 +35,13 @@ class FlightData
             seats_available: $data['seats_available'],
             aircraft: $data['aircraft'],
             carbon_footprint: $data['carbon_footprint'],
-            eco_rating: $data['eco_rating'],
-            date: $data['date'] ?? null,
-            total_price: $data['total_price'] ?? null
+            eco_rating: $data['eco_rating']
         );
     }
 
     public function toArray(): array
     {
-        $array = [
+        return [
             'id' => $this->id,
             'airline' => $this->airline,
             'flight_number' => $this->flight_number,
@@ -58,17 +54,7 @@ class FlightData
             'seats_available' => $this->seats_available,
             'aircraft' => $this->aircraft,
             'carbon_footprint' => $this->carbon_footprint,
-            'eco_rating' => $this->eco_rating,
+            'eco_rating' => $this->eco_rating
         ];
-
-        if ($this->date !== null) {
-            $array['date'] = $this->date;
-        }
-
-        if ($this->total_price !== null) {
-            $array['total_price'] = $this->total_price;
-        }
-
-        return $array;
     }
 }

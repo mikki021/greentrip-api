@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\DataTransferObjects\FlightData;
+use App\Services\DTOs\FlightData;
 use App\Models\Booking;
 use App\Models\FlightDetail;
 use App\Models\User;
@@ -183,12 +183,10 @@ class FlightPersistenceTest extends TestCase
             seats_available: 45,
             aircraft: 'Boeing 737',
             carbon_footprint: 0.85,
-            eco_rating: 4.2,
-            date: '2024-01-15',
-            total_price: 599.98
+            eco_rating: 4.2
         );
 
-        $flightDetail = FlightDetail::fromFlightData($flightData);
+        $flightDetail = FlightDetail::fromFlightData($flightData, '2024-01-15');
 
         $this->assertDatabaseHas('flight_details', [
             'flight_id' => 'FL001',
@@ -198,7 +196,7 @@ class FlightPersistenceTest extends TestCase
         ]);
 
         // Test deduplication
-        $flightDetail2 = FlightDetail::fromFlightData($flightData);
+        $flightDetail2 = FlightDetail::fromFlightData($flightData, '2024-01-15');
         $this->assertEquals($flightDetail->id, $flightDetail2->id);
         $this->assertEquals(1, FlightDetail::count());
     }

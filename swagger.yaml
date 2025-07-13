@@ -593,7 +593,7 @@ paths:
                   type: string
                   format: date
                   description: Departure date (YYYY-MM-DD)
-                  example: 2024-12-25
+                  example: 2025-12-25
                 passengers:
                   type: integer
                   description: Number of passengers
@@ -604,7 +604,7 @@ paths:
                 value:
                   from: JFK
                   to: LAX
-                  date: 2024-12-25
+                  date: 2025-12-25
                   passengers: 2
       responses:
         200:
@@ -903,78 +903,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnauthorizedError'
-    post:
-      tags:
-        - Bookings
-      summary: Create a new booking
-      description: Create a new flight booking for the authenticated user
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - flight_id
-                - passengers
-                - class
-                - passenger_details
-                - contact_email
-              properties:
-                flight_id:
-                  type: string
-                  description: Flight identifier
-                  example: FL001
-                passengers:
-                  type: integer
-                  minimum: 1
-                  maximum: 9
-                  description: Number of passengers
-                  example: 2
-                class:
-                  type: string
-                  enum: [economy, premium_economy, business, first]
-                  description: Travel class
-                  example: economy
-                passenger_details:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/Passenger'
-                contact_email:
-                  type: string
-                  format: email
-                  description: Contact email for booking
-                  example: john.doe@example.com
-      responses:
-        201:
-          description: Booking created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "Booking created successfully"
-                  data:
-                    $ref: '#/components/schemas/Booking'
-        401:
-          description: Unauthorized - Invalid or missing token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        422:
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationError'
 
   /bookings/{bookingId}:
     get:
@@ -1024,80 +952,7 @@ paths:
                   message:
                     type: string
                     example: "Booking not found"
-    put:
-      tags:
-        - Bookings
-      summary: Update booking
-      description: Update a specific booking for the authenticated user
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: bookingId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Booking identifier
-          example: "1"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                status:
-                  type: string
-                  enum: [confirmed, cancelled, modified]
-                  description: Booking status
-                  example: modified
-                emissions:
-                  type: number
-                  format: float
-                  minimum: 0
-                  description: Updated emissions value
-                  example: 1500.50
-      responses:
-        200:
-          description: Booking updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "Booking updated successfully"
-                  data:
-                    $ref: '#/components/schemas/UserBooking'
-        401:
-          description: Unauthorized - Invalid or missing token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        404:
-          description: Booking not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: false
-                  message:
-                    type: string
-                    example: "Booking not found"
-        422:
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationError'
+
     delete:
       tags:
         - Bookings

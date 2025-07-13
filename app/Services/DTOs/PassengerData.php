@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DataTransferObjects;
+namespace App\Services\DTOs;
 
 class PassengerData
 {
@@ -27,7 +27,18 @@ class PassengerData
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
             'date_of_birth' => $this->date_of_birth,
-            'passport_number' => $this->passport_number
+            'passport_number' => $this->passport_number,
         ];
+    }
+
+    public function createModel(int $bookingId): \App\Models\Passenger
+    {
+        return \App\Models\Passenger::create([
+            'booking_id' => $bookingId,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'date_of_birth' => $this->date_of_birth,
+            'passport_number' => $this->passport_number,
+        ]);
     }
 }

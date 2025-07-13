@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DataTransferObjects;
+namespace App\Services\DTOs;
 
 class AirportData
 {

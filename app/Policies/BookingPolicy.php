@@ -12,7 +12,7 @@ class BookingPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return true; // Users can view their own bookings list
     }
 
     /**
@@ -28,15 +28,7 @@ class BookingPolicy
      */
     public function create(User $user): bool
     {
-        return true;
-    }
-
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Booking $booking): bool
-    {
-        return $user->id === $booking->user_id;
+        return true; // Authenticated users can create bookings
     }
 
     /**
@@ -45,21 +37,5 @@ class BookingPolicy
     public function delete(User $user, Booking $booking): bool
     {
         return $user->id === $booking->user_id;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Booking $booking): bool
-    {
-        return $user->id === $booking->user_id;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Booking $booking): bool
-    {
-        return false;
     }
 }

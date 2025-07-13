@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DataTransferObjects;
+namespace App\Services\DTOs;
 
 class BookingData
 {
@@ -10,7 +10,7 @@ class BookingData
         public readonly FlightData $flight_details,
         public readonly int $passengers,
         public readonly float $total_price,
-        public readonly array $passenger_details,
+        public readonly array $passenger_details, // Array of PassengerData objects
         public readonly string $contact_email,
         public readonly ?string $contact_phone,
         public readonly string $booking_date,
@@ -20,13 +20,18 @@ class BookingData
 
     public static function fromArray(array $data): self
     {
+        $passengerDetails = array_map(
+            fn($passenger) => PassengerData::fromArray($passenger),
+            $data['passenger_details']
+        );
+
         return new self(
             booking_reference: $data['booking_reference'],
             flight_id: $data['flight_id'],
             flight_details: FlightData::fromArray($data['flight_details']),
             passengers: $data['passengers'],
             total_price: $data['total_price'],
-            passenger_details: array_map(fn($passenger) => PassengerData::fromArray($passenger), $data['passenger_details']),
+            passenger_details: $passengerDetails,
             contact_email: $data['contact_email'],
             contact_phone: $data['contact_phone'] ?? null,
             booking_date: $data['booking_date'],
@@ -43,7 +48,10 @@ class BookingData
             'flight_details' => $this->flight_details->toArray(),
             'passengers' => $this->passengers,
             'total_price' => $this->total_price,
-            'passenger_details' => array_map(fn($passenger) => $passenger->toArray(), $this->passenger_details),
+            'passenger_details' => array_map(
+                fn($passenger) => $passenger->toArray(),
+                $this->passenger_details
+            ),
             'contact_email' => $this->contact_email,
             'contact_phone' => $this->contact_phone,
             'booking_date' => $this->booking_date,

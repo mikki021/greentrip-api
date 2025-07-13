@@ -2,8 +2,8 @@
 
 namespace App\Contracts;
 
-use App\DataTransferObjects\FlightData;
-use App\DataTransferObjects\AirportData;
+use App\Services\DTOs\FlightData;
+use App\Services\DTOs\AirportData;
 
 interface FlightProviderInterface
 {

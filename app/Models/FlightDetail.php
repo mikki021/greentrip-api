@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\DataTransferObjects\FlightData;
+use App\Services\DTOs\FlightData;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -57,7 +57,7 @@ class FlightDetail extends Model
                 'aircraft' => $flightData->aircraft,
                 'carbon_footprint' => $flightData->carbon_footprint,
                 'eco_rating' => $flightData->eco_rating,
-                'total_price' => $flightData->total_price,
+                'total_price' => $flightData->price,
             ]
         );
     }

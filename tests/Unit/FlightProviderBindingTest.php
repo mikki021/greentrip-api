@@ -29,10 +29,10 @@ class FlightProviderBindingTest extends TestCase
         $this->assertIsArray($flights);
 
         $flight = $flightProvider->getFlightDetails('FL001');
-        $this->assertInstanceOf(\App\DataTransferObjects\FlightData::class, $flight);
+        $this->assertInstanceOf(\App\Services\DTOs\FlightData::class, $flight);
 
         $airports = $flightProvider->getAirports();
         $this->assertIsArray($airports);
-        $this->assertInstanceOf(\App\DataTransferObjects\AirportData::class, $airports[0]);
+        $this->assertInstanceOf(\App\Services\DTOs\AirportData::class, $airports[0]);
     }
 }

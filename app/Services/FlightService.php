@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Contracts\FlightProviderInterface;
-use App\DataTransferObjects\BookingData;
-use App\DataTransferObjects\FlightData;
-use App\DataTransferObjects\AirportData;
-use App\DataTransferObjects\PassengerData;
+use App\Services\DTOs\BookingData;
+use App\Services\DTOs\FlightData;
+use App\Services\DTOs\AirportData;
+use App\Services\DTOs\PassengerData;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Models\Booking;
@@ -108,6 +108,11 @@ class FlightService
             'emissions' => $emissions,
             'status' => 'confirmed',
         ]);
+
+        // Persist passenger data
+        foreach ($passengerDetails as $passengerData) {
+            $passengerData->createModel($booking->id);
+        }
 
         $bookingDataDto = new BookingData(
             booking_reference: $bookingReference,

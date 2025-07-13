@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\FlightProviderInterface;
-use App\DataTransferObjects\FlightData;
-use App\DataTransferObjects\AirportData;
+use App\Services\DTOs\FlightData;
+use App\Services\DTOs\AirportData;
 
 class FakeFlightProvider implements FlightProviderInterface
 {

@@ -32,85 +32,6 @@ class BookingManagementTest extends TestCase
         $this->otherUser = User::factory()->create();
     }
 
-    public function test_user_can_create_booking_via_api(): void
-    {
-        $this->actingAs($this->user, 'api');
-
-        $bookingData = [
-            'flight_id' => 'FL001',
-            'passengers' => 1,
-            'class' => 'economy',
-            'passenger_details' => [
-                [
-                    'first_name' => 'John',
-                    'last_name' => 'Doe',
-                    'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'ABC123456'
-                ]
-            ],
-            'contact_email' => 'john@example.com'
-        ];
-
-        $response = $this->postJson('/api/bookings', $bookingData);
-
-        $response->assertStatus(201)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [
-                    'booking_reference',
-                    'flight_id',
-                    'flight_details',
-                    'passengers',
-                    'total_price',
-                    'passenger_details',
-                    'contact_email',
-                    'booking_date',
-                    'status',
-                    'carbon_offset_contribution'
-                ]
-            ]);
-
-        $this->assertTrue($response->json('success'));
-        $this->assertEquals('Booking created successfully', $response->json('message'));
-    }
-
-    public function test_user_can_update_booking_status(): void
-    {
-        // Create a booking first
-        $bookingData = [
-            'flight_id' => 'FL001',
-            'passengers' => 1,
-            'class' => 'economy',
-            'passenger_details' => [
-                [
-                    'first_name' => 'John',
-                    'last_name' => 'Doe',
-                    'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'ABC123456'
-                ]
-            ],
-            'contact_email' => 'john@example.com'
-        ];
-
-        $this->flightService->bookFlight($bookingData, $this->user);
-        $booking = Booking::where('user_id', $this->user->id)->first();
-
-        $this->actingAs($this->user, 'api');
-
-        $response = $this->putJson("/api/bookings/{$booking->id}", [
-            'status' => 'modified'
-        ]);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Booking updated successfully'
-            ]);
-
-        $this->assertEquals('modified', $response->json('data.status'));
-    }
-
     public function test_user_can_cancel_booking(): void
     {
         // Create a booking first
@@ -126,14 +47,16 @@ class BookingManagementTest extends TestCase
                     'passport_number' => 'ABC123456'
                 ]
             ],
-            'contact_email' => 'john@example.com'
+            'contact_email' => 'test@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData, $this->user);
-        $booking = Booking::where('user_id', $this->user->id)->first();
-
         $this->actingAs($this->user, 'api');
+        $this->postJson('/api/flights/book', $bookingData);
 
+        $booking = Booking::where('user_id', $this->user->id)->first();
+        $this->assertNotNull($booking);
+
+        // Cancel the booking
         $response = $this->deleteJson("/api/bookings/{$booking->id}");
 
         $response->assertStatus(200)
@@ -143,146 +66,53 @@ class BookingManagementTest extends TestCase
             ]);
 
         // Verify booking is soft deleted
-        $this->assertSoftDeleted($booking);
+        $this->assertSoftDeleted('bookings', ['id' => $booking->id]);
 
-        // Verify status was updated to cancelled before deletion
-        $this->assertEquals('cancelled', $booking->fresh()->status);
-    }
-
-    public function test_user_cannot_update_other_user_booking(): void
-    {
-        // Create a booking for other user
-        $bookingData = [
-            'flight_id' => 'FL001',
-            'passengers' => 1,
-            'class' => 'economy',
-            'passenger_details' => [
-                [
-                    'first_name' => 'Other',
-                    'last_name' => 'User',
-                    'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'XYZ123456'
-                ]
-            ],
-            'contact_email' => 'other@example.com'
-        ];
-
-        $this->flightService->bookFlight($bookingData, $this->otherUser);
-        $otherUserBooking = Booking::where('user_id', $this->otherUser->id)->first();
-
-        $this->actingAs($this->user, 'api');
-
-        $response = $this->putJson("/api/bookings/{$otherUserBooking->id}", [
-            'status' => 'modified'
+        // Verify status was updated to cancelled
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => 'cancelled'
         ]);
-
-        $response->assertStatus(404)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Booking not found'
-            ]);
     }
 
     public function test_user_cannot_cancel_other_user_booking(): void
     {
-        // Create a booking for other user
+        // Create a booking for the first user
         $bookingData = [
             'flight_id' => 'FL001',
             'passengers' => 1,
             'class' => 'economy',
             'passenger_details' => [
                 [
-                    'first_name' => 'Other',
-                    'last_name' => 'User',
+                    'first_name' => 'John',
+                    'last_name' => 'Doe',
                     'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'XYZ123456'
+                    'passport_number' => 'ABC123456'
                 ]
             ],
-            'contact_email' => 'other@example.com'
+            'contact_email' => 'test@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData, $this->otherUser);
-        $otherUserBooking = Booking::where('user_id', $this->otherUser->id)->first();
-
         $this->actingAs($this->user, 'api');
+        $this->postJson('/api/flights/book', $bookingData);
 
-        $response = $this->deleteJson("/api/bookings/{$otherUserBooking->id}");
+        $booking = Booking::where('user_id', $this->user->id)->first();
+
+        // Try to cancel with different user
+        $this->actingAs($this->otherUser, 'api');
+        $response = $this->deleteJson("/api/bookings/{$booking->id}");
 
         $response->assertStatus(404)
             ->assertJson([
                 'success' => false,
                 'message' => 'Booking not found'
             ]);
-    }
 
-    public function test_update_booking_validates_status_values(): void
-    {
-        // Create a booking first
-        $bookingData = [
-            'flight_id' => 'FL001',
-            'passengers' => 1,
-            'class' => 'economy',
-            'passenger_details' => [
-                [
-                    'first_name' => 'John',
-                    'last_name' => 'Doe',
-                    'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'ABC123456'
-                ]
-            ],
-            'contact_email' => 'john@example.com'
-        ];
-
-        $this->flightService->bookFlight($bookingData, $this->user);
-        $booking = Booking::where('user_id', $this->user->id)->first();
-
-        $this->actingAs($this->user, 'api');
-
-        $response = $this->putJson("/api/bookings/{$booking->id}", [
-            'status' => 'invalid_status'
+        // Verify booking is not cancelled
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => 'confirmed'
         ]);
-
-        $response->assertStatus(422)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'errors'
-            ]);
-    }
-
-    public function test_update_booking_validates_emissions_value(): void
-    {
-        // Create a booking first
-        $bookingData = [
-            'flight_id' => 'FL001',
-            'passengers' => 1,
-            'class' => 'economy',
-            'passenger_details' => [
-                [
-                    'first_name' => 'John',
-                    'last_name' => 'Doe',
-                    'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'ABC123456'
-                ]
-            ],
-            'contact_email' => 'john@example.com'
-        ];
-
-        $this->flightService->bookFlight($bookingData, $this->user);
-        $booking = Booking::where('user_id', $this->user->id)->first();
-
-        $this->actingAs($this->user, 'api');
-
-        $response = $this->putJson("/api/bookings/{$booking->id}", [
-            'emissions' => -10
-        ]);
-
-        $response->assertStatus(422)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'errors'
-            ]);
     }
 
     public function test_cancelled_bookings_are_not_returned_in_list(): void
@@ -300,52 +130,51 @@ class BookingManagementTest extends TestCase
                     'passport_number' => 'ABC123456'
                 ]
             ],
-            'contact_email' => 'john@example.com'
+            'contact_email' => 'test@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData, $this->user);
+        $this->actingAs($this->user, 'api');
+        $this->postJson('/api/flights/book', $bookingData);
+
         $booking = Booking::where('user_id', $this->user->id)->first();
 
         // Cancel the booking
-        $this->actingAs($this->user, 'api');
         $this->deleteJson("/api/bookings/{$booking->id}");
 
-        // Check that cancelled booking is not in the list
+        // Get bookings list
         $response = $this->getJson('/api/bookings');
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'data' => [],
-                'count' => 0
-            ]);
+        $response->assertStatus(200);
+        $bookings = $response->json('data');
+        $this->assertCount(0, $bookings); // No bookings should be returned
     }
 
     public function test_booking_policy_prevents_unauthorized_access(): void
     {
-        // Create a booking for other user
+        // Create a booking for the first user
         $bookingData = [
             'flight_id' => 'FL001',
             'passengers' => 1,
             'class' => 'economy',
             'passenger_details' => [
                 [
-                    'first_name' => 'Other',
-                    'last_name' => 'User',
+                    'first_name' => 'John',
+                    'last_name' => 'Doe',
                     'date_of_birth' => '1990-01-01',
-                    'passport_number' => 'XYZ123456'
+                    'passport_number' => 'ABC123456'
                 ]
             ],
-            'contact_email' => 'other@example.com'
+            'contact_email' => 'test@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData, $this->otherUser);
-        $otherUserBooking = Booking::where('user_id', $this->otherUser->id)->first();
-
         $this->actingAs($this->user, 'api');
+        $this->postJson('/api/flights/book', $bookingData);
 
-        // Try to view other user's booking
-        $response = $this->getJson("/api/bookings/{$otherUserBooking->id}");
+        $booking = Booking::where('user_id', $this->user->id)->first();
+
+        // Try to access with different user
+        $this->actingAs($this->otherUser, 'api');
+        $response = $this->getJson("/api/bookings/{$booking->id}");
 
         $response->assertStatus(404)
             ->assertJson([

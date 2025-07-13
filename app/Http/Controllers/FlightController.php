@@ -6,8 +6,7 @@ use App\Services\FlightService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Gate;
-use App\Models\Booking; // Added this import for Booking model
+use App\Models\Booking;
 
 class FlightController extends Controller
 {
@@ -130,20 +129,29 @@ class FlightController extends Controller
             $user = auth()->user();
             $this->authorize('viewAny', Booking::class);
 
-            $bookings = $user->bookings()->with('flightDetail')->get();
+            $bookings = $user->bookings()->with(['flightDetail', 'passengers'])->get();
 
             return response()->json([
                 'success' => true,
                 'data' => $bookings->map(function ($booking) {
-                    return [
-                        'id' => $booking->id,
-                        'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
-                        'flight_details' => $booking->flightDetail,
-                        'emissions' => $booking->emissions,
-                        'status' => $booking->status,
-                        'created_at' => $booking->created_at,
-                        'updated_at' => $booking->updated_at
-                    ];
+                                    return [
+                    'id' => $booking->id,
+                    'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
+                    'flight_details' => $booking->flightDetail,
+                    'passengers' => $booking->passengers->map(function ($passenger) {
+                        return [
+                            'id' => $passenger->id,
+                            'first_name' => $passenger->first_name,
+                            'last_name' => $passenger->last_name,
+                            'date_of_birth' => $passenger->date_of_birth->format('Y-m-d'),
+                            'passport_number' => $passenger->passport_number,
+                        ];
+                    }),
+                    'emissions' => $booking->emissions,
+                    'status' => $booking->status,
+                    'created_at' => $booking->created_at,
+                    'updated_at' => $booking->updated_at
+                ];
                 }),
                 'count' => $bookings->count()
             ]);
@@ -162,7 +170,7 @@ class FlightController extends Controller
     {
         try {
             $user = auth()->user();
-            $booking = $user->bookings()->with('flightDetail')->find($bookingId);
+            $booking = $user->bookings()->with(['flightDetail', 'passengers'])->find($bookingId);
 
             if (!$booking) {
                 return response()->json([
@@ -179,6 +187,15 @@ class FlightController extends Controller
                     'id' => $booking->id,
                     'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
                     'flight_details' => $booking->flightDetail,
+                    'passengers' => $booking->passengers->map(function ($passenger) {
+                        return [
+                            'id' => $passenger->id,
+                            'first_name' => $passenger->first_name,
+                            'last_name' => $passenger->last_name,
+                            'date_of_birth' => $passenger->date_of_birth->format('Y-m-d'),
+                            'passport_number' => $passenger->passport_number,
+                        ];
+                    }),
                     'emissions' => $booking->emissions,
                     'status' => $booking->status,
                     'created_at' => $booking->created_at,
@@ -194,97 +211,13 @@ class FlightController extends Controller
     }
 
     /**
-     * Create a new booking
-     */
-    public function createBooking(Request $request): JsonResponse
-    {
-        try {
-            $this->authorize('create', Booking::class);
-
-            $bookingData = $request->all();
-            $user = auth()->user();
-
-            $booking = $this->flightService->bookFlight($bookingData, $user);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Booking created successfully',
-                'data' => $booking
-            ], 201);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while creating the booking'
-            ], 500);
-        }
-    }
-
-    /**
-     * Update a booking
-     */
-    public function updateBooking(Request $request, string $bookingId): JsonResponse
-    {
-        try {
-            $user = auth()->user();
-            $booking = $user->bookings()->find($bookingId);
-
-            if (!$booking) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Booking not found'
-                ], 404);
-            }
-
-            $this->authorize('update', $booking);
-
-            $validatedData = $request->validate([
-                'status' => 'sometimes|string|in:confirmed,cancelled,modified',
-                'emissions' => 'sometimes|numeric|min:0',
-            ]);
-
-            $booking->update($validatedData);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Booking updated successfully',
-                'data' => [
-                    'id' => $booking->id,
-                    'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
-                    'flight_details' => $booking->flightDetail,
-                    'emissions' => $booking->emissions,
-                    'status' => $booking->status,
-                    'created_at' => $booking->created_at,
-                    'updated_at' => $booking->updated_at
-                ]
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'An error occurred while updating the booking'
-            ], 500);
-        }
-    }
-
-    /**
      * Cancel a booking (soft delete)
      */
     public function cancelBooking(string $bookingId): JsonResponse
     {
         try {
             $user = auth()->user();
-            $booking = $user->bookings()->find($bookingId);
+            $booking = $user->bookings()->with(['flightDetail', 'passengers'])->find($bookingId);
 
             if (!$booking) {
                 return response()->json([
@@ -295,9 +228,8 @@ class FlightController extends Controller
 
             $this->authorize('delete', $booking);
 
-            // Update status to cancelled before soft deleting
             $booking->update(['status' => 'cancelled']);
-            $booking->delete(); // This is a soft delete
+            $booking->delete();
 
             return response()->json([
                 'success' => true,
