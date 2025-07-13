@@ -17,7 +17,8 @@ Route::get('/', function () {
     ]);
 });
 
-Route::group(['prefix' => 'auth'], function () {
+// Auth routes with strict rate limiting
+Route::group(['prefix' => 'auth', 'middleware' => 'throttle:auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
 
@@ -28,41 +29,44 @@ Route::group(['prefix' => 'auth'], function () {
     });
 });
 
-// Email Verification Routes
-Route::get('verify-email/{token}', [EmailVerificationController::class, 'verify']);
-Route::post('resend-verification', [EmailVerificationController::class, 'resend']);
+// Email Verification Routes with moderate rate limiting
+Route::group(['middleware' => 'throttle:general'], function () {
+    Route::get('verify-email/{token}', [EmailVerificationController::class, 'verify']);
+    Route::post('resend-verification', [EmailVerificationController::class, 'resend']);
+});
 
-Route::group(['prefix' => 'users', 'middleware' => 'auth:api'], function () {
+// User management with general rate limiting
+Route::group(['prefix' => 'users', 'middleware' => ['auth:api', 'throttle:general']], function () {
     Route::get('profile', [UserController::class, 'profile']);
     Route::get('{id}', [UserController::class, 'show']);
     Route::put('{id}', [UserController::class, 'update']);
     Route::delete('{id}', [UserController::class, 'destroy']);
 });
 
-// Flight Routes
-Route::group(['prefix' => 'flights', 'middleware' => 'auth:api'], function () {
+// Flight search with specific rate limiting
+Route::group(['prefix' => 'flights', 'middleware' => ['auth:api', 'throttle:search']], function () {
     Route::post('search', [FlightController::class, 'search']);
     Route::post('book', [FlightController::class, 'book']);
     Route::get('airports', [FlightController::class, 'airports']);
     Route::get('{flightId}', [FlightController::class, 'show']);
 });
 
-// Booking Routes
-Route::group(['prefix' => 'bookings', 'middleware' => 'auth:api'], function () {
+// Booking management with general rate limiting
+Route::group(['prefix' => 'bookings', 'middleware' => ['auth:api', 'throttle:general']], function () {
     Route::get('/', [FlightController::class, 'userBookings']);
     Route::get('{bookingId}', [FlightController::class, 'showBooking']);
     Route::delete('{bookingId}', [FlightController::class, 'cancelBooking']);
 });
 
-// Emission Routes
-Route::group(['prefix' => 'emissions', 'middleware' => 'auth:api'], function () {
+// Emissions with higher rate limiting (cached responses)
+Route::group(['prefix' => 'emissions', 'middleware' => ['auth:api', 'throttle:emissions']], function () {
     Route::post('calculate', [EmissionController::class, 'calculate']);
     Route::get('summary', [EmissionsReportingController::class, 'getEmissionsSummary']);
     Route::delete('cache', [EmissionsReportingController::class, 'clearCache']);
 });
 
-// Swagger Documentation Routes
-Route::group(['prefix' => 'swagger'], function () {
+// Swagger Documentation Routes with minimal rate limiting
+Route::group(['prefix' => 'swagger', 'middleware' => 'throttle:general'], function () {
     Route::get('/', [SwaggerController::class, 'index']);
     Route::get('spec', [SwaggerController::class, 'spec']);
 });

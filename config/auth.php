@@ -105,6 +105,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API Rate Limiting
+    |--------------------------------------------------------------------------
+    |
+    | Configure rate limiting for API endpoints to prevent abuse.
+    | Format: 'attempts,decay_minutes'
+    |
+    */
+
+    'api_rate_limit' => [
+        'auth' => env('API_AUTH_RATE_LIMIT', '5,1'), // 5 attempts per minute for auth
+        'general' => env('API_GENERAL_RATE_LIMIT', '60,1'), // 60 requests per minute for general API
+        'search' => env('API_SEARCH_RATE_LIMIT', '30,1'), // 30 searches per minute
+        'emissions' => env('API_EMISSIONS_RATE_LIMIT', '100,1'), // 100 emissions queries per minute
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Password Confirmation Timeout
     |--------------------------------------------------------------------------
     |

@@ -15,6 +15,7 @@ A **mock API for a sustainable business travel agency**. This project simulates 
 - **Dockerized** for easy local development
 - **Mailhog** integration for email testing
 - **PSR-12 code style** and static analysis ready
+- **Rate limiting** with tiered protection for different endpoints
 
 ---
 
@@ -76,6 +77,10 @@ A **mock API for a sustainable business travel agency**. This project simulates 
   ```bash
   ./scripts/test.sh --style
   ./scripts/test.sh --static
+  ```
+- **Rate limiting tests:**
+  ```bash
+  ./scripts/test.sh --filter=RateLimitingTest
   ```
 - **Git hooks:**
   - Pre-commit hook runs tests and code quality checks automatically before each commit.
