@@ -96,4 +96,57 @@ class FakeFlightProviderTest extends TestCase
             $this->assertEquals($expectedTotalPrice, $flight['total_price']);
         }
     }
+
+    /**
+     * Test that airports include coordinates
+     */
+    public function test_airports_include_coordinates(): void
+    {
+        $airports = $this->flightProvider->getAirports();
+
+        foreach ($airports as $airport) {
+            $this->assertArrayHasKey('latitude', $airport);
+            $this->assertArrayHasKey('longitude', $airport);
+            $this->assertIsFloat($airport['latitude']);
+            $this->assertIsFloat($airport['longitude']);
+            $this->assertGreaterThanOrEqual(-90, $airport['latitude']);
+            $this->assertLessThanOrEqual(90, $airport['latitude']);
+            $this->assertGreaterThanOrEqual(-180, $airport['longitude']);
+            $this->assertLessThanOrEqual(180, $airport['longitude']);
+        }
+    }
+
+    /**
+     * Test specific airport coordinates
+     */
+    public function test_specific_airport_coordinates(): void
+    {
+        $airports = $this->flightProvider->getAirports();
+
+        // Find JFK airport
+        $jfk = null;
+        foreach ($airports as $airport) {
+            if ($airport['code'] === 'JFK') {
+                $jfk = $airport;
+                break;
+            }
+        }
+
+        $this->assertNotNull($jfk);
+        $this->assertEquals(40.6413, $jfk['latitude']);
+        $this->assertEquals(-73.7781, $jfk['longitude']);
+
+        // Find LHR airport
+        $lhr = null;
+        foreach ($airports as $airport) {
+            if ($airport['code'] === 'LHR') {
+                $lhr = $airport;
+                break;
+            }
+        }
+
+        $this->assertNotNull($lhr);
+        $this->assertEquals(51.4700, $lhr['latitude']);
+        $this->assertEquals(-0.4543, $lhr['longitude']);
+    }
 }

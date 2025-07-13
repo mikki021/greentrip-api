@@ -73,44 +73,128 @@ class FakeFlightProvider implements FlightProviderInterface
     ];
 
     /**
-     * Static airports data
+     * Static airports data with coordinates
      */
     private array $airports = [
         'JFK' => [
             'code' => 'JFK',
             'name' => 'John F. Kennedy International Airport',
             'city' => 'New York',
-            'country' => 'USA'
+            'country' => 'USA',
+            'latitude' => 40.6413,
+            'longitude' => -73.7781
         ],
         'LAX' => [
             'code' => 'LAX',
             'name' => 'Los Angeles International Airport',
             'city' => 'Los Angeles',
-            'country' => 'USA'
+            'country' => 'USA',
+            'latitude' => 33.9416,
+            'longitude' => -118.4085
         ],
         'ORD' => [
             'code' => 'ORD',
             'name' => 'O\'Hare International Airport',
             'city' => 'Chicago',
-            'country' => 'USA'
+            'country' => 'USA',
+            'latitude' => 41.9742,
+            'longitude' => -87.9073
         ],
         'SFO' => [
             'code' => 'SFO',
             'name' => 'San Francisco International Airport',
             'city' => 'San Francisco',
-            'country' => 'USA'
+            'country' => 'USA',
+            'latitude' => 37.6213,
+            'longitude' => -122.3790
         ],
         'MIA' => [
             'code' => 'MIA',
             'name' => 'Miami International Airport',
             'city' => 'Miami',
-            'country' => 'USA'
+            'country' => 'USA',
+            'latitude' => 25.7932,
+            'longitude' => -80.2906
         ],
         'SEA' => [
             'code' => 'SEA',
             'name' => 'Seattle-Tacoma International Airport',
             'city' => 'Seattle',
-            'country' => 'USA'
+            'country' => 'USA',
+            'latitude' => 47.4502,
+            'longitude' => -122.3088
+        ],
+        'LHR' => [
+            'code' => 'LHR',
+            'name' => 'London Heathrow Airport',
+            'city' => 'London',
+            'country' => 'UK',
+            'latitude' => 51.4700,
+            'longitude' => -0.4543
+        ],
+        'CDG' => [
+            'code' => 'CDG',
+            'name' => 'Paris Charles de Gaulle Airport',
+            'city' => 'Paris',
+            'country' => 'France',
+            'latitude' => 49.0097,
+            'longitude' => 2.5479
+        ],
+        'FRA' => [
+            'code' => 'FRA',
+            'name' => 'Frankfurt Airport',
+            'city' => 'Frankfurt',
+            'country' => 'Germany',
+            'latitude' => 50.0379,
+            'longitude' => 8.5622
+        ],
+        'DXB' => [
+            'code' => 'DXB',
+            'name' => 'Dubai International Airport',
+            'city' => 'Dubai',
+            'country' => 'UAE',
+            'latitude' => 25.2532,
+            'longitude' => 55.3657
+        ],
+        'HND' => [
+            'code' => 'HND',
+            'name' => 'Tokyo Haneda Airport',
+            'city' => 'Tokyo',
+            'country' => 'Japan',
+            'latitude' => 35.5494,
+            'longitude' => 139.7798
+        ],
+        'SIN' => [
+            'code' => 'SIN',
+            'name' => 'Singapore Changi Airport',
+            'city' => 'Singapore',
+            'country' => 'Singapore',
+            'latitude' => 1.3644,
+            'longitude' => 103.9915
+        ],
+        'AMS' => [
+            'code' => 'AMS',
+            'name' => 'Amsterdam Airport Schiphol',
+            'city' => 'Amsterdam',
+            'country' => 'Netherlands',
+            'latitude' => 52.3105,
+            'longitude' => 4.7683
+        ],
+        'MAD' => [
+            'code' => 'MAD',
+            'name' => 'Madrid Barajas Airport',
+            'city' => 'Madrid',
+            'country' => 'Spain',
+            'latitude' => 40.4983,
+            'longitude' => -3.5676
+        ],
+        'ATL' => [
+            'code' => 'ATL',
+            'name' => 'Hartsfield-Jackson Atlanta International Airport',
+            'city' => 'Atlanta',
+            'country' => 'USA',
+            'latitude' => 33.6407,
+            'longitude' => -84.4277
         ]
     ];
 

@@ -49,7 +49,6 @@ class FlightService
     {
         $this->validateBookingData($bookingData);
 
-        // Get flight details to verify availability
         $flight = $this->flightProvider->getFlightDetails($bookingData['flight_id']);
 
         if (!$flight) {
@@ -59,7 +58,6 @@ class FlightService
             );
         }
 
-        // Check if flight is available for the requested number of passengers
         if ($flight['seats_available'] < $bookingData['passengers']) {
             throw new ValidationException(
                 Validator::make([], []),
@@ -67,13 +65,10 @@ class FlightService
             );
         }
 
-        // Generate booking reference
         $bookingReference = $this->generateBookingReference();
 
-        // Calculate total price
         $totalPrice = $flight['price'] * $bookingData['passengers'];
 
-        // In a real application, you would save the booking to the database here
         $booking = [
             'booking_reference' => $bookingReference,
             'flight_id' => $bookingData['flight_id'],
@@ -137,7 +132,6 @@ class FlightService
             throw new ValidationException($validator);
         }
 
-        // Ensure from and to are different
         if ($searchCriteria['from'] === $searchCriteria['to']) {
             throw new ValidationException(
                 Validator::make([], []),
@@ -181,7 +175,6 @@ class FlightService
             throw new ValidationException($validator);
         }
 
-        // Ensure number of passengers matches passenger details
         if (count($bookingData['passenger_details']) !== $bookingData['passengers']) {
             throw new ValidationException(
                 Validator::make([], []),
@@ -210,7 +203,7 @@ class FlightService
     private function calculateCarbonOffset(array $flight, int $passengers): float
     {
         $carbonPerPassenger = $flight['carbon_footprint'] / $passengers;
-        $offsetPercentage = 0.15; // 15% offset contribution
+        $offsetPercentage = 0.15;
 
         return round($carbonPerPassenger * $offsetPercentage, 2);
     }

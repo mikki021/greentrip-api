@@ -6,6 +6,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SwaggerController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\FlightController;
+use App\Http\Controllers\EmissionController;
 
 Route::get('/', function () {
     return response()->json([
@@ -42,6 +43,11 @@ Route::group(['prefix' => 'flights', 'middleware' => 'auth:api'], function () {
     Route::post('book', [FlightController::class, 'book']);
     Route::get('airports', [FlightController::class, 'airports']);
     Route::get('{flightId}', [FlightController::class, 'show']);
+});
+
+// Emission Routes
+Route::group(['prefix' => 'emissions', 'middleware' => 'auth:api'], function () {
+    Route::post('calculate', [EmissionController::class, 'calculate']);
 });
 
 // Swagger Documentation Routes
