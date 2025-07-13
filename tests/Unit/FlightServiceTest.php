@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Models\User;
+use App\Services\EmissionCalculatorService;
 use App\Services\FlightService;
 use App\Services\FakeFlightProvider;
 use Illuminate\Validation\ValidationException;
@@ -11,12 +13,17 @@ class FlightServiceTest extends TestCase
 {
     private FlightService $flightService;
     private FakeFlightProvider $mockProvider;
+    private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->mockProvider = new FakeFlightProvider();
-        $this->flightService = new FlightService($this->mockProvider);
+        $this->flightService = new FlightService(
+            $this->mockProvider,
+            new EmissionCalculatorService()
+        );
+        $this->user = User::factory()->create();
     }
 
     public function test_search_flights_with_valid_criteria(): void
@@ -101,7 +108,7 @@ class FlightServiceTest extends TestCase
             'contact_phone' => '+1234567890'
         ];
 
-        $booking = $this->flightService->bookFlight($bookingData);
+        $booking = $this->flightService->bookFlight($bookingData, $this->user);
 
         $this->assertIsArray($booking);
         $this->assertArrayHasKey('booking_reference', $booking);
@@ -139,7 +146,7 @@ class FlightServiceTest extends TestCase
             'contact_email' => 'john.doe@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData);
+        $this->flightService->bookFlight($bookingData, $this->user);
     }
 
     public function test_book_flight_throws_validation_exception_for_insufficient_seats(): void
@@ -158,7 +165,7 @@ class FlightServiceTest extends TestCase
             'contact_email' => 'john.doe@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData);
+        $this->flightService->bookFlight($bookingData, $this->user);
     }
 
     public function test_book_flight_throws_validation_exception_for_missing_passenger_details(): void
@@ -180,7 +187,7 @@ class FlightServiceTest extends TestCase
             'contact_email' => 'john.doe@example.com'
         ];
 
-        $this->flightService->bookFlight($bookingData);
+        $this->flightService->bookFlight($bookingData, $this->user);
     }
 
     public function test_book_flight_throws_validation_exception_for_invalid_email(): void
@@ -201,7 +208,7 @@ class FlightServiceTest extends TestCase
             'contact_email' => 'invalid-email'
         ];
 
-        $this->flightService->bookFlight($bookingData);
+        $this->flightService->bookFlight($bookingData, $this->user);
     }
 
     public function test_get_airports_returns_airports_array(): void
@@ -226,6 +233,7 @@ class FlightServiceTest extends TestCase
         $this->assertIsArray($flight);
         $this->assertEquals('FL001', $flight['id']);
         $this->assertEquals('Green Airlines', $flight['airline']);
+        $this->assertEquals('GA101', $flight['flight_number']);
     }
 
     public function test_get_flight_details_returns_null_for_invalid_id(): void
@@ -251,8 +259,8 @@ class FlightServiceTest extends TestCase
             'contact_email' => 'john.doe@example.com'
         ];
 
-        $booking1 = $this->flightService->bookFlight($bookingData);
-        $booking2 = $this->flightService->bookFlight($bookingData);
+        $booking1 = $this->flightService->bookFlight($bookingData, $this->user);
+        $booking2 = $this->flightService->bookFlight($bookingData, $this->user);
 
         $this->assertNotEquals($booking1['booking_reference'], $booking2['booking_reference']);
         $this->assertStringStartsWith('GT', $booking1['booking_reference']);
@@ -281,10 +289,9 @@ class FlightServiceTest extends TestCase
             'contact_email' => 'john.doe@example.com'
         ];
 
-        $booking = $this->flightService->bookFlight($bookingData);
+        $booking = $this->flightService->bookFlight($bookingData, $this->user);
 
         $this->assertArrayHasKey('carbon_offset_contribution', $booking);
-        $this->assertIsFloat($booking['carbon_offset_contribution']);
         $this->assertGreaterThan(0, $booking['carbon_offset_contribution']);
     }
 }

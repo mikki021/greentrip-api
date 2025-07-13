@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Booking;
+use App\Policies\BookingPolicy;
+use App\Policies\FlightPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
-use App\Policies\FlightPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -15,6 +17,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         'flight' => FlightPolicy::class,
+        Booking::class => BookingPolicy::class,
     ];
 
     /**

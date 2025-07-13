@@ -40,6 +40,8 @@ tags:
     description: Flight booking and search endpoints
   - name: Emissions
     description: Flight emissions calculation endpoints
+  - name: Bookings
+    description: Booking management endpoints
 
 paths:
   /:
@@ -651,7 +653,15 @@ paths:
       tags:
         - Flights
       summary: Book a flight
-      description: Book a flight for one or more passengers.
+      description: |
+        Book a flight for one or more passengers.
+
+        **Persistence**: Bookings are automatically saved to the database with:
+        - Flight details (deduplicated by flight ID and date)
+        - Calculated CO2 emissions based on distance, travel class, and passengers
+        - User association for booking history
+
+        **Emissions Calculation**: Uses the Haversine formula to calculate distance between airports and applies class-based multipliers (Economy ×1.0, Business ×1.5, etc.).
       security:
         - bearerAuth: []
       requestBody:
@@ -860,6 +870,282 @@ paths:
                   to:
                     type: string
                     example: JFK
+
+  /bookings:
+    get:
+      tags:
+        - Bookings
+      summary: Get user bookings
+      description: Retrieve all bookings for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: User bookings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserBooking'
+                  count:
+                    type: integer
+                    example: 2
+        401:
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+    post:
+      tags:
+        - Bookings
+      summary: Create a new booking
+      description: Create a new flight booking for the authenticated user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - flight_id
+                - passengers
+                - class
+                - passenger_details
+                - contact_email
+              properties:
+                flight_id:
+                  type: string
+                  description: Flight identifier
+                  example: FL001
+                passengers:
+                  type: integer
+                  minimum: 1
+                  maximum: 9
+                  description: Number of passengers
+                  example: 2
+                class:
+                  type: string
+                  enum: [economy, premium_economy, business, first]
+                  description: Travel class
+                  example: economy
+                passenger_details:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Passenger'
+                contact_email:
+                  type: string
+                  format: email
+                  description: Contact email for booking
+                  example: john.doe@example.com
+      responses:
+        201:
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Booking created successfully"
+                  data:
+                    $ref: '#/components/schemas/Booking'
+        401:
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        422:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /bookings/{bookingId}:
+    get:
+      tags:
+        - Bookings
+      summary: Get specific booking
+      description: Retrieve details of a specific booking for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking identifier
+          example: "1"
+      responses:
+        200:
+          description: Booking details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/UserBooking'
+        401:
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Booking not found"
+    put:
+      tags:
+        - Bookings
+      summary: Update booking
+      description: Update a specific booking for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking identifier
+          example: "1"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [confirmed, cancelled, modified]
+                  description: Booking status
+                  example: modified
+                emissions:
+                  type: number
+                  format: float
+                  minimum: 0
+                  description: Updated emissions value
+                  example: 1500.50
+      responses:
+        200:
+          description: Booking updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Booking updated successfully"
+                  data:
+                    $ref: '#/components/schemas/UserBooking'
+        401:
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Booking not found"
+        422:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+    delete:
+      tags:
+        - Bookings
+      summary: Cancel booking
+      description: Cancel a booking (soft delete) for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking identifier
+          example: "1"
+      responses:
+        200:
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Booking cancelled successfully"
+        401:
+          description: Unauthorized - Invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        404:
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Booking not found"
 
 components:
   securitySchemes:
@@ -1144,6 +1430,47 @@ components:
         - booking_date
         - status
         - carbon_offset_contribution
+
+    UserBooking:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Booking identifier
+          example: 1
+        booking_reference:
+          type: string
+          description: Unique booking reference
+          example: GTABC1234
+        flight_details:
+          $ref: '#/components/schemas/Flight'
+        emissions:
+          type: number
+          format: float
+          description: CO2 emissions in kg
+          example: 1497.12
+        status:
+          type: string
+          description: Booking status
+          example: confirmed
+        created_at:
+          type: string
+          format: date-time
+          description: Booking creation timestamp
+          example: "2024-01-15T10:30:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Booking last update timestamp
+          example: "2024-01-15T10:30:00.000000Z"
+      required:
+        - id
+        - booking_reference
+        - flight_details
+        - emissions
+        - status
+        - created_at
+        - updated_at
 
     EmissionCalculationResponse:
       type: object

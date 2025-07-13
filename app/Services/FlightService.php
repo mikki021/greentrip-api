@@ -3,13 +3,22 @@
 namespace App\Services;
 
 use App\Contracts\FlightProviderInterface;
+use App\DataTransferObjects\BookingData;
+use App\DataTransferObjects\FlightData;
+use App\DataTransferObjects\AirportData;
+use App\DataTransferObjects\PassengerData;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use App\Models\Booking;
+use App\Models\FlightDetail;
+use App\Models\User;
+use App\Services\EmissionCalculatorService;
 
 class FlightService
 {
     public function __construct(
-        private FlightProviderInterface $flightProvider
+        private FlightProviderInterface $flightProvider,
+        private EmissionCalculatorService $emissionCalculator
     ) {}
 
     /**
@@ -31,7 +40,7 @@ class FlightService
         );
 
         return [
-            'flights' => $flights,
+            'flights' => array_map(fn(FlightData $flight) => $flight->toArray(), $flights),
             'search_criteria' => $searchCriteria,
             'total_count' => count($flights),
             'search_timestamp' => now()->toISOString()
@@ -45,7 +54,7 @@ class FlightService
      * @return array
      * @throws ValidationException
      */
-    public function bookFlight(array $bookingData): array
+    public function bookFlight(array $bookingData, User $user): array
     {
         $this->validateBookingData($bookingData);
 
@@ -58,7 +67,7 @@ class FlightService
             );
         }
 
-        if ($flight['seats_available'] < $bookingData['passengers']) {
+        if ($flight->seats_available < $bookingData['passengers']) {
             throw new ValidationException(
                 Validator::make([], []),
                 'Insufficient seats available for this flight'
@@ -66,24 +75,55 @@ class FlightService
         }
 
         $bookingReference = $this->generateBookingReference();
+        $totalPrice = $flight->price * $bookingData['passengers'];
+        $passengerDetails = array_map(fn($passenger) => PassengerData::fromArray($passenger), $bookingData['passenger_details']);
 
-        $totalPrice = $flight['price'] * $bookingData['passengers'];
+        $airports = $this->flightProvider->getAirports();
+        $airportsMap = [];
+        foreach ($airports as $airport) {
+            $airportsMap[$airport->code] = $airport;
+        }
+        $from = $flight->from;
+        $to = $flight->to;
+        $class = $bookingData['class'] ?? 'economy';
+        $passengers = $bookingData['passengers'];
+        $lat1 = $airportsMap[$from]->latitude ?? null;
+        $lon1 = $airportsMap[$from]->longitude ?? null;
+        $lat2 = $airportsMap[$to]->latitude ?? null;
+        $lon2 = $airportsMap[$to]->longitude ?? null;
+        if ($lat1 === null || $lon1 === null || $lat2 === null || $lon2 === null) {
+            throw new ValidationException(
+                Validator::make([], []),
+                'Could not determine airport coordinates for emissions calculation'
+            );
+        }
+        $distance = $this->emissionCalculator->calculateDistance($lat1, $lon1, $lat2, $lon2);
+        $emissions = $this->emissionCalculator->calculateEmissions($distance, $class, $passengers);
 
-        $booking = [
-            'booking_reference' => $bookingReference,
-            'flight_id' => $bookingData['flight_id'],
-            'flight_details' => $flight,
-            'passengers' => $bookingData['passengers'],
-            'total_price' => $totalPrice,
-            'passenger_details' => $bookingData['passenger_details'],
-            'contact_email' => $bookingData['contact_email'],
-            'contact_phone' => $bookingData['contact_phone'] ?? null,
-            'booking_date' => now()->toISOString(),
+        $flightDetail = FlightDetail::fromFlightData($flight, $bookingData['date'] ?? null);
+
+        $booking = Booking::create([
+            'user_id' => $user->id,
+            'flight_details_id' => $flightDetail->id,
+            'emissions' => $emissions,
             'status' => 'confirmed',
-            'carbon_offset_contribution' => $this->calculateCarbonOffset($flight, $bookingData['passengers'])
-        ];
+        ]);
 
-        return $booking;
+        $bookingDataDto = new BookingData(
+            booking_reference: $bookingReference,
+            flight_id: $bookingData['flight_id'],
+            flight_details: $flight,
+            passengers: $bookingData['passengers'],
+            total_price: $totalPrice,
+            passenger_details: $passengerDetails,
+            contact_email: $bookingData['contact_email'],
+            contact_phone: $bookingData['contact_phone'] ?? null,
+            booking_date: now()->toISOString(),
+            status: 'confirmed',
+            carbon_offset_contribution: $emissions
+        );
+
+        return $bookingDataDto->toArray();
     }
 
     /**
@@ -93,7 +133,8 @@ class FlightService
      */
     public function getAirports(): array
     {
-        return $this->flightProvider->getAirports();
+        $airports = $this->flightProvider->getAirports();
+        return array_map(fn(AirportData $airport) => $airport->toArray(), $airports);
     }
 
     /**
@@ -104,7 +145,8 @@ class FlightService
      */
     public function getFlightDetails(string $flightId): ?array
     {
-        return $this->flightProvider->getFlightDetails($flightId);
+        $flight = $this->flightProvider->getFlightDetails($flightId);
+        return $flight ? $flight->toArray() : null;
     }
 
     /**
@@ -196,13 +238,13 @@ class FlightService
     /**
      * Calculate carbon offset contribution
      *
-     * @param array $flight
+     * @param FlightData $flight
      * @param int $passengers
      * @return float
      */
-    private function calculateCarbonOffset(array $flight, int $passengers): float
+    private function calculateCarbonOffset(FlightData $flight, int $passengers): float
     {
-        $carbonPerPassenger = $flight['carbon_footprint'] / $passengers;
+        $carbonPerPassenger = $flight->carbon_footprint / $passengers;
         $offsetPercentage = 0.15;
 
         return round($carbonPerPassenger * $offsetPercentage, 2);

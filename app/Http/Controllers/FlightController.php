@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Gate;
+use App\Models\Booking; // Added this import for Booking model
 
 class FlightController extends Controller
 {
@@ -49,8 +50,9 @@ class FlightController extends Controller
     {
         try {
             $bookingData = $request->all();
+            $user = auth()->user();
 
-            $booking = $this->flightService->bookFlight($bookingData);
+            $booking = $this->flightService->bookFlight($bookingData, $user);
 
             return response()->json([
                 'success' => true,
@@ -115,6 +117,196 @@ class FlightController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving airports'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user's bookings
+     */
+    public function userBookings(): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $this->authorize('viewAny', Booking::class);
+
+            $bookings = $user->bookings()->with('flightDetail')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $bookings->map(function ($booking) {
+                    return [
+                        'id' => $booking->id,
+                        'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
+                        'flight_details' => $booking->flightDetail,
+                        'emissions' => $booking->emissions,
+                        'status' => $booking->status,
+                        'created_at' => $booking->created_at,
+                        'updated_at' => $booking->updated_at
+                    ];
+                }),
+                'count' => $bookings->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving bookings'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get specific booking details
+     */
+    public function showBooking(string $bookingId): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $booking = $user->bookings()->with('flightDetail')->find($bookingId);
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking not found'
+                ], 404);
+            }
+
+            $this->authorize('view', $booking);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $booking->id,
+                    'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
+                    'flight_details' => $booking->flightDetail,
+                    'emissions' => $booking->emissions,
+                    'status' => $booking->status,
+                    'created_at' => $booking->created_at,
+                    'updated_at' => $booking->updated_at
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrieving booking details'
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a new booking
+     */
+    public function createBooking(Request $request): JsonResponse
+    {
+        try {
+            $this->authorize('create', Booking::class);
+
+            $bookingData = $request->all();
+            $user = auth()->user();
+
+            $booking = $this->flightService->bookFlight($bookingData, $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking created successfully',
+                'data' => $booking
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the booking'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a booking
+     */
+    public function updateBooking(Request $request, string $bookingId): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $booking = $user->bookings()->find($bookingId);
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking not found'
+                ], 404);
+            }
+
+            $this->authorize('update', $booking);
+
+            $validatedData = $request->validate([
+                'status' => 'sometimes|string|in:confirmed,cancelled,modified',
+                'emissions' => 'sometimes|numeric|min:0',
+            ]);
+
+            $booking->update($validatedData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking updated successfully',
+                'data' => [
+                    'id' => $booking->id,
+                    'booking_reference' => 'GT' . strtoupper(substr(md5($booking->id), 0, 8)),
+                    'flight_details' => $booking->flightDetail,
+                    'emissions' => $booking->emissions,
+                    'status' => $booking->status,
+                    'created_at' => $booking->created_at,
+                    'updated_at' => $booking->updated_at
+                ]
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the booking'
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a booking (soft delete)
+     */
+    public function cancelBooking(string $bookingId): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            $booking = $user->bookings()->find($bookingId);
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking not found'
+                ], 404);
+            }
+
+            $this->authorize('delete', $booking);
+
+            // Update status to cancelled before soft deleting
+            $booking->update(['status' => 'cancelled']);
+            $booking->delete(); // This is a soft delete
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking cancelled successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while cancelling the booking'
             ], 500);
         }
     }

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\FlightProviderInterface;
+use App\DataTransferObjects\FlightData;
+use App\DataTransferObjects\AirportData;
 
 class FakeFlightProvider implements FlightProviderInterface
 {
@@ -214,12 +216,12 @@ class FakeFlightProvider implements FlightProviderInterface
                 $flightData['date'] = $date;
                 $flightData['total_price'] = $flight['price'] * $passengers;
 
-                $availableFlights[] = $flightData;
+                $availableFlights[] = FlightData::fromArray($flightData);
             }
         }
 
-        usort($availableFlights, function ($a, $b) {
-            return $a['price'] <=> $b['price'];
+        usort($availableFlights, function (FlightData $a, FlightData $b) {
+            return $a->price <=> $b->price;
         });
 
         return $availableFlights;
@@ -228,9 +230,13 @@ class FakeFlightProvider implements FlightProviderInterface
     /**
      * Get flight details by ID
      */
-    public function getFlightDetails(string $flightId): ?array
+    public function getFlightDetails(string $flightId): ?FlightData
     {
-        return $this->flights[$flightId] ?? null;
+        if (!isset($this->flights[$flightId])) {
+            return null;
+        }
+
+        return FlightData::fromArray($this->flights[$flightId]);
     }
 
     /**
@@ -238,6 +244,6 @@ class FakeFlightProvider implements FlightProviderInterface
      */
     public function getAirports(): array
     {
-        return array_values($this->airports);
+        return array_map(fn($airport) => AirportData::fromArray($airport), array_values($this->airports));
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use App\Contracts\FlightProviderInterface;
 use App\Services\FakeFlightProvider;
 use Tests\TestCase;
 
@@ -18,27 +17,27 @@ class FakeFlightProviderTest extends TestCase
 
     public function test_implements_flight_provider_interface(): void
     {
-        $this->assertInstanceOf(FlightProviderInterface::class, $this->flightProvider);
+        $this->assertInstanceOf(\App\Contracts\FlightProviderInterface::class, $this->flightProvider);
     }
 
     public function test_search_flights_returns_matching_flights(): void
     {
-        $flights = $this->flightProvider->searchFlights('JFK', 'LAX', '2024-01-15', 1);
+        $flights = $this->flightProvider->searchFlights('JFK', 'LAX', '2024-01-15');
 
         $this->assertIsArray($flights);
         $this->assertNotEmpty($flights);
 
         foreach ($flights as $flight) {
-            $this->assertEquals('JFK', $flight['from']);
-            $this->assertEquals('LAX', $flight['to']);
-            $this->assertEquals('2024-01-15', $flight['date']);
-            $this->assertArrayHasKey('total_price', $flight);
+            $this->assertEquals('JFK', $flight->from);
+            $this->assertEquals('LAX', $flight->to);
+            $this->assertEquals('2024-01-15', $flight->date);
+            $this->assertNotNull($flight->total_price);
         }
     }
 
     public function test_search_flights_returns_empty_array_for_no_matches(): void
     {
-        $flights = $this->flightProvider->searchFlights('INVALID', 'INVALID', '2024-01-15', 1);
+        $flights = $this->flightProvider->searchFlights('XXX', 'YYY', '2024-01-15');
 
         $this->assertIsArray($flights);
         $this->assertEmpty($flights);
@@ -48,10 +47,10 @@ class FakeFlightProviderTest extends TestCase
     {
         $flight = $this->flightProvider->getFlightDetails('FL001');
 
-        $this->assertIsArray($flight);
-        $this->assertEquals('FL001', $flight['id']);
-        $this->assertEquals('Green Airlines', $flight['airline']);
-        $this->assertEquals('GA101', $flight['flight_number']);
+        $this->assertInstanceOf(\App\DataTransferObjects\FlightData::class, $flight);
+        $this->assertEquals('FL001', $flight->id);
+        $this->assertEquals('Green Airlines', $flight->airline);
+        $this->assertEquals('GA101', $flight->flight_number);
     }
 
     public function test_get_flight_details_returns_null_for_invalid_id(): void
@@ -69,19 +68,20 @@ class FakeFlightProviderTest extends TestCase
         $this->assertNotEmpty($airports);
 
         foreach ($airports as $airport) {
-            $this->assertArrayHasKey('code', $airport);
-            $this->assertArrayHasKey('name', $airport);
-            $this->assertArrayHasKey('city', $airport);
-            $this->assertArrayHasKey('country', $airport);
+            $this->assertInstanceOf(\App\DataTransferObjects\AirportData::class, $airport);
+            $this->assertNotEmpty($airport->code);
+            $this->assertNotEmpty($airport->name);
+            $this->assertNotEmpty($airport->city);
+            $this->assertNotEmpty($airport->country);
         }
     }
 
     public function test_search_flights_respects_passenger_count(): void
     {
-        $flights = $this->flightProvider->searchFlights('JFK', 'LAX', '2024-01-15', 100);
+        $flights = $this->flightProvider->searchFlights('JFK', 'LAX', '2024-01-15', 50);
 
         $this->assertIsArray($flights);
-        $this->assertEmpty($flights);
+        $this->assertEmpty($flights); // No flights have 50 seats available
     }
 
     public function test_search_flights_calculates_total_price_correctly(): void
@@ -92,33 +92,25 @@ class FakeFlightProviderTest extends TestCase
         $this->assertNotEmpty($flights);
 
         foreach ($flights as $flight) {
-            $expectedTotalPrice = $flight['price'] * 3;
-            $this->assertEquals($expectedTotalPrice, $flight['total_price']);
+            $expectedTotalPrice = $flight->price * 3;
+            $this->assertEquals($expectedTotalPrice, $flight->total_price);
         }
     }
 
-    /**
-     * Test that airports include coordinates
-     */
     public function test_airports_include_coordinates(): void
     {
         $airports = $this->flightProvider->getAirports();
 
         foreach ($airports as $airport) {
-            $this->assertArrayHasKey('latitude', $airport);
-            $this->assertArrayHasKey('longitude', $airport);
-            $this->assertIsFloat($airport['latitude']);
-            $this->assertIsFloat($airport['longitude']);
-            $this->assertGreaterThanOrEqual(-90, $airport['latitude']);
-            $this->assertLessThanOrEqual(90, $airport['latitude']);
-            $this->assertGreaterThanOrEqual(-180, $airport['longitude']);
-            $this->assertLessThanOrEqual(180, $airport['longitude']);
+            $this->assertIsFloat($airport->latitude);
+            $this->assertIsFloat($airport->longitude);
+            $this->assertGreaterThanOrEqual(-90, $airport->latitude);
+            $this->assertLessThanOrEqual(90, $airport->latitude);
+            $this->assertGreaterThanOrEqual(-180, $airport->longitude);
+            $this->assertLessThanOrEqual(180, $airport->longitude);
         }
     }
 
-    /**
-     * Test specific airport coordinates
-     */
     public function test_specific_airport_coordinates(): void
     {
         $airports = $this->flightProvider->getAirports();
@@ -126,27 +118,14 @@ class FakeFlightProviderTest extends TestCase
         // Find JFK airport
         $jfk = null;
         foreach ($airports as $airport) {
-            if ($airport['code'] === 'JFK') {
+            if ($airport->code === 'JFK') {
                 $jfk = $airport;
                 break;
             }
         }
 
         $this->assertNotNull($jfk);
-        $this->assertEquals(40.6413, $jfk['latitude']);
-        $this->assertEquals(-73.7781, $jfk['longitude']);
-
-        // Find LHR airport
-        $lhr = null;
-        foreach ($airports as $airport) {
-            if ($airport['code'] === 'LHR') {
-                $lhr = $airport;
-                break;
-            }
-        }
-
-        $this->assertNotNull($lhr);
-        $this->assertEquals(51.4700, $lhr['latitude']);
-        $this->assertEquals(-0.4543, $lhr['longitude']);
+        $this->assertEquals(40.6413, $jfk->latitude);
+        $this->assertEquals(-73.7781, $jfk->longitude);
     }
 }

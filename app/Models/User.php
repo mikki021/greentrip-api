@@ -79,4 +79,12 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->email_verification_expires_at && $this->email_verification_expires_at->isPast();
     }
+
+    /**
+     * User's bookings
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
 }

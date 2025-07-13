@@ -45,6 +45,15 @@ Route::group(['prefix' => 'flights', 'middleware' => 'auth:api'], function () {
     Route::get('{flightId}', [FlightController::class, 'show']);
 });
 
+// Booking Routes
+Route::group(['prefix' => 'bookings', 'middleware' => 'auth:api'], function () {
+    Route::get('/', [FlightController::class, 'userBookings']);
+    Route::post('/', [FlightController::class, 'createBooking']);
+    Route::get('{bookingId}', [FlightController::class, 'showBooking']);
+    Route::put('{bookingId}', [FlightController::class, 'updateBooking']);
+    Route::delete('{bookingId}', [FlightController::class, 'cancelBooking']);
+});
+
 // Emission Routes
 Route::group(['prefix' => 'emissions', 'middleware' => 'auth:api'], function () {
     Route::post('calculate', [EmissionController::class, 'calculate']);

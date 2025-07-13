@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Contracts\FlightProviderInterface;
-use App\Services\FakeFlightProvider;
 use Tests\TestCase;
 
 class FlightProviderBindingTest extends TestCase
@@ -12,15 +11,14 @@ class FlightProviderBindingTest extends TestCase
     {
         $flightProvider = app(FlightProviderInterface::class);
 
-        $this->assertInstanceOf(FakeFlightProvider::class, $flightProvider);
-        $this->assertInstanceOf(FlightProviderInterface::class, $flightProvider);
+        $this->assertInstanceOf(\App\Services\FakeFlightProvider::class, $flightProvider);
     }
 
     public function test_can_resolve_flight_provider_from_container(): void
     {
-        $flightProvider = $this->app->make(FlightProviderInterface::class);
+        $flightProvider = app(FlightProviderInterface::class);
 
-        $this->assertInstanceOf(FakeFlightProvider::class, $flightProvider);
+        $this->assertInstanceOf(FlightProviderInterface::class, $flightProvider);
     }
 
     public function test_flight_provider_methods_work_through_interface(): void
@@ -31,9 +29,10 @@ class FlightProviderBindingTest extends TestCase
         $this->assertIsArray($flights);
 
         $flight = $flightProvider->getFlightDetails('FL001');
-        $this->assertIsArray($flight);
+        $this->assertInstanceOf(\App\DataTransferObjects\FlightData::class, $flight);
 
         $airports = $flightProvider->getAirports();
         $this->assertIsArray($airports);
+        $this->assertInstanceOf(\App\DataTransferObjects\AirportData::class, $airports[0]);
     }
 }
